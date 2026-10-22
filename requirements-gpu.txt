@@ -1,0 +1,6 @@
+# İxtiyari: engine="torch", device="cuda" üçün.
+# CUDA-lı torch üçün əvvəlcə uyğun index-dən qurun, məsələn:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+torch>=2.2
+torchvision>=0.17
+timm==0.9.*

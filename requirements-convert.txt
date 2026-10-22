@@ -1,0 +1,10 @@
+# YALNIZ bir dəfəlik model çevirməsi üçün (scripts/download_models.py --extra).
+# Tətbiq özü işləyərkən bunlara ehtiyac yoxdur — bütün modellər ONNX kimi işləyir.
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   pip install -r requirements-convert.txt
+torch>=2.2
+transformers>=4.40
+safetensors>=0.4
+h5py>=3.10
+# Kaggle .h5 çevirməsinin orijinal Keras modeli ilə paritet yoxlaması üçün (torch backend)
+keras>=3.3

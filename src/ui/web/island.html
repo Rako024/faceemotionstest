@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="az">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kamera indikatoru</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  html, body { background: #0b0b0c; color: #fff; height: 100%; }
+  html.material body { background: #0b0b0c; }
+  .island {
+    height: 100vh; display: flex; align-items: center; gap: 9px; padding: 0 5px 0 15px;
+    font: 500 13px var(--font-text); letter-spacing: -0.01em; white-space: nowrap;
+  }
+  .island .info { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1; height: 100%; }
+  .island .led {
+    width: 8px; height: 8px; border-radius: 50%; background: #30d158; flex: none;
+    box-shadow: 0 0 0 0 rgba(48, 209, 88, 0.6); animation: led 2s ease-in-out infinite;
+  }
+  @keyframes led { 50% { box-shadow: 0 0 0 4px rgba(48, 209, 88, 0); } }
+  .island .what { color: rgba(235, 235, 245, 0.6); overflow: hidden; text-overflow: ellipsis; transition: opacity 0.3s; }
+  .island .stop {
+    height: 28px; padding: 0 12px; border-radius: 999px; background: #ff453a; color: #fff;
+    font: 600 12px var(--font-text); display: flex; align-items: center; gap: 5px; flex: none;
+    transition: transform 0.15s var(--spring), filter 0.15s;
+  }
+  .island .stop:hover { filter: brightness(1.1); }
+  .island .stop:active { transform: scale(0.94); }
+  .island .stop .i { width: 11px; height: 11px; }
+</style>
+</head>
+<body>
+<div class="island">
+  <div class="info" id="info" title="Paneli aç" role="button" tabindex="0">
+    <span class="led" aria-hidden="true"></span>
+    <span id="label">Kamera aktiv</span>
+    <span class="what" id="what"></span>
+  </div>
+  <button class="stop" id="stop" data-icon="stop" data-icon-class="fill" aria-label="Kameranı dayandır"><span>Dayandır</span></button>
+</div>
+<script src="common.js"></script>
+<script src="mock.js" data-dev></script>
+<script src="island.js"></script>
+</body>
+</html>

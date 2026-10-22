@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="az">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Emosiya Pilotu</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="main.css">
+</head>
+<body>
+<div class="ambient" aria-hidden="true"><i class="b1"></i><i class="b2"></i><i class="b3"></i></div>
+
+<header class="titlebar pywebview-drag-region">
+  <div class="traffic">
+    <button class="tl close" data-action="close" aria-label="Bağla və çıx" title="Bağla (kamera dayanır)" data-icon="x"></button>
+    <button class="tl min" data-action="minimize" aria-label="Kiçilt" title="Kiçilt" data-icon="minus"></button>
+    <button class="tl zoom" data-action="compact" aria-label="Kompakt görünüş" title="Kompakt / geniş görünüş" data-icon="expand"></button>
+  </div>
+  <div class="title">Emosiya Pilotu</div>
+  <div class="toolbar" id="toolbar" hidden>
+    <div class="menu-wrap" data-show="camera">
+      <button class="tb-btn cam-btn" id="camera-btn" aria-haspopup="menu" aria-expanded="false" title="Kamera">
+        <span data-icon="video"></span><span class="cam-name" id="camera-label">Kamera</span><span data-icon="chevron"></span>
+      </button>
+      <div class="menu cam-menu" id="camera-menu" role="menu" hidden></div>
+    </div>
+    <button class="tb-btn" id="test-btn" data-action="start-test" title="Göstərişli ifadə testi — hər modelin düzgünlüyü" data-icon="scan"><span>Nəzarətli test</span></button>
+    <div class="menu-wrap">
+      <button class="tb-btn" id="primary-btn" aria-haspopup="menu" aria-expanded="false" title="Əsas model">
+        <span class="tb-cap">Əsas</span><span id="primary-label">—</span><span data-icon="chevron"></span>
+      </button>
+      <div class="menu" id="primary-menu" role="menu" hidden></div>
+    </div>
+    <div class="segmented" role="radiogroup" aria-label="Müqayisə rejimi" id="compare-seg">
+      <button role="radio" data-mode="off" aria-checked="false" title="Yalnız əsas model">Tək</button>
+      <button role="radio" data-mode="auto" aria-checked="false" title="Kompüterin gücü çatdığı qədər model">Avto</button>
+      <button role="radio" data-mode="on" aria-checked="false" title="Seçilmiş modellərin hamısı">Hamısı</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- 1. Razılıq -->
+  <section class="screen" id="consent" aria-labelledby="consent-title">
+    <div class="scroll"><div class="narrow">
+      <div class="consent-hero stagger">
+        <div class="app-icon" data-icon="scan"></div>
+        <h1 class="large-title" id="consent-title">Başlamazdan əvvəl</h1>
+        <p class="subhead">Pilot qiymətləndirmə · <span data-bind="operator_id"></span></p>
+      </div>
+      <div class="glass list stagger" role="list">
+        <div class="row" role="listitem"><span class="tile" style="background:var(--blue)" data-icon="face"></span>
+          <div class="text"><p class="headline">Nə ölçülür</p>
+          <p class="footnote">Üz ifadəsinin 8 sinif üzrə ehtimalları. Daxili hissinizi yox, yalnız ifadəni ölçür.</p></div></div>
+        <div class="row" role="listitem"><span class="tile" style="background:var(--green)" data-icon="database"></span>
+          <div class="text"><p class="headline">Nə saxlanılır</p>
+          <p class="footnote">Yalnız rəqəmlər və anonim ID (<span data-bind="operator_id"></span>). Adi işdə video və şəkil yazılmır.<span data-show="research"> Nəzarətli testdə şəkil yalnız test olunan şəxsin ayrıca razılığı ilə saxlanıla bilər.</span></p></div></div>
+        <div class="row" role="listitem"><span class="tile" style="background:var(--indigo)" data-icon="wifi-off"></span>
+          <div class="text"><p class="headline">Heç nə göndərilmir</p>
+          <p class="footnote">Bütün emal bu kompüterdə gedir. Şəbəkə bağlantıları bloklanır.</p></div></div>
+        <div class="row" role="listitem"><span class="tile" style="background:var(--orange)" data-icon="hand"></span>
+          <div class="text"><p class="headline">Nəzarət sizdədir</p>
+          <p class="footnote">“Dayandır” ilə istənilən an kamera bağlanır. Ekranın yuxarısındakı yaşıl indikator kameranın açıq olduğunu göstərir.</p></div></div>
+        <div class="row" role="listitem" data-show="prompts"><span class="tile" style="background:var(--teal)" data-icon="bubble"></span>
+          <div class="text"><p class="headline">Qısa sorğu</p>
+          <p class="footnote">Hər <span data-bind="interval"></span> dəqiqədən bir əhvalınızı soruşacağıq. Cavab ixtiyaridir, pəncərə <span data-bind="timeout"></span> saniyədə özü bağlanır.</p></div></div>
+      </div>
+
+      <div class="glass list cam-row-wrap stagger" data-show="camera">
+        <div class="row cam-row"><span class="tile" style="background:var(--gray)" data-icon="video"></span>
+          <div class="text"><p class="headline">Kamera</p>
+          <p class="footnote" id="consent-camera">—</p></div>
+          <div class="menu-wrap">
+            <button class="btn-chip" id="consent-camera-btn" aria-haspopup="menu" aria-expanded="false">Dəyiş<span data-icon="chevron"></span></button>
+            <div class="menu cam-menu" id="consent-camera-menu" role="menu" hidden></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="disclosure" aria-expanded="false" aria-controls="details" id="details-toggle">
+        <span>Texniki detallar</span><span data-icon="chevron"></span>
+      </button>
+      <div class="collapse" id="details"><div>
+        <div class="glass list">
+          <div class="kv"><span>Əsas model</span><span data-bind="model"></span></div>
+          <div class="kv"><span>Müqayisə</span><span data-bind="compare"></span></div>
+          <div class="kv"><span>Mühərrik</span><span data-bind="engine"></span></div>
+          <div class="kv"><span>Analiz tezliyi</span><span><span data-bind="fps"></span> kadr/san</span></div>
+          <div class="kv"><span>Ortalama pəncərəsi</span><span><span data-bind="window"></span> saniyə</span></div>
+          <div class="kv"><span>Mənbə</span><span data-bind="source"></span></div>
+        </div>
+      </div></div>
+    </div></div>
+    <div class="dock narrow">
+      <button class="btn btn-primary" data-action="accept">Razıyam, başla</button>
+      <button class="btn btn-plain" data-action="decline">İmtina et</button>
+    </div>
+  </section>
+
+  <!-- 2. Yüklənir -->
+  <section class="screen center" id="loading" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <p class="headline">Modellər yüklənir…</p>
+    <p class="footnote">Kamera bir neçə saniyəyə açılacaq</p>
+  </section>
+
+  <!-- 3. İşləyir: solda kamera + əsas model, sağda bütün modellər -->
+  <section class="screen" id="running">
+    <div class="dash">
+      <aside class="left">
+        <div class="scroll">
+          <div class="chips status-chips">
+            <span class="chip live" id="live-chip"><span class="dot"></span><span id="live-label">Kamera aktiv</span></span>
+            <span class="chip num" data-bind="operator_id"></span>
+            <button class="chip toggle" role="switch" aria-checked="false" id="preview-switch"
+              aria-label="Kamera önizləməsi" title="Kamera önizləməsi (yalnız ekranda, diskə yazılmır)" data-icon="eye"><span>Önizləmə</span></button>
+          </div>
+
+          <div class="collapse preview-top" id="preview-collapse"><div>
+            <div class="preview-frame">
+              <img id="preview-img" alt="Kamera önizləməsi (güzgü)">
+              <span class="preview-badge" id="preview-badge"><span class="dot"></span><span id="preview-badge-text">—</span></span>
+            </div>
+            <p class="caption preview-hint">Güzgü görüntüsü · yalnız ekranda, diskə yazılmır</p>
+          </div></div>
+
+          <div class="glass hero" id="hero" aria-live="polite">
+            <div class="ring-wrap">
+              <svg class="ring" viewBox="0 0 132 132" aria-hidden="true">
+                <circle class="track" cx="66" cy="66" r="56"/>
+                <circle class="value" id="ring-value" cx="66" cy="66" r="56"/>
+              </svg>
+              <div class="ring-center">
+                <span class="ring-pct num" id="ring-pct">—</span>
+                <span class="ring-icon" id="ring-icon"></span>
+              </div>
+            </div>
+            <div class="hero-text">
+              <p class="caption" id="hero-kicker">Son 10 saniyə</p>
+              <p class="hero-label" id="hero-label">Toplanır…</p>
+              <p class="footnote" id="hero-sub">&nbsp;</p>
+              <p class="caption hero-model" id="hero-model"></p>
+            </div>
+          </div>
+
+          <div class="metrics">
+            <div class="glass metric-card"><span class="m-icon" data-icon="face"></span><p class="caption">Üz</p><p class="metric small" id="m-face">—</p></div>
+            <div class="glass metric-card"><span class="m-icon" data-icon="bolt"></span><p class="caption">Gecikmə (cəmi)</p><p class="metric num" id="m-latency">—</p></div>
+            <div class="glass metric-card"><span class="m-icon" data-icon="cpu"></span><p class="caption">CPU</p><p class="metric num" id="m-cpu">—</p></div>
+            <div class="glass metric-card" id="m-next-card"><span class="m-icon" data-icon="clock"></span><p class="caption">Növbəti sorğu</p><p class="metric num" id="m-next">—</p></div>
+          </div>
+          <p class="caption footer-stats num" id="footer-stats">&nbsp;</p>
+        </div>
+        <div class="dock">
+          <button class="btn btn-destructive" data-action="stop" data-icon="stop" data-icon-class="fill"><span>Dayandır</span></button>
+        </div>
+      </aside>
+
+      <section class="right scroll" aria-label="Modellər">
+        <div class="models-head">
+          <h2 class="title3">Modellər</h2>
+          <span class="chip" id="agree-chip" hidden></span>
+          <span class="spacer"></span>
+          <div class="budget" id="budget" title="Bir analizdə bütün modellərin cəmi vaxtı">
+            <span class="caption num" id="budget-label">—</span>
+            <div class="meter"><i id="budget-fill"></i></div>
+          </div>
+        </div>
+        <div class="cards" id="cards"></div>
+        <div class="glass timeline-card">
+          <div class="tl-head"><p class="headline">Son 60 saniyə</p><p class="caption">hər xana — bir analiz · ən yenisi sağda</p></div>
+          <div class="timeline" id="timeline"></div>
+          <ul class="tl-legend" id="tl-legend"></ul>
+        </div>
+        <div id="others-wrap" hidden>
+          <p class="section-header">Digər modellər</p>
+          <div class="glass list others" id="others"></div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- 3b. Nəzarətli test: göstərişlər, sonda düzgünlük cədvəli -->
+  <section class="screen" id="test" aria-live="polite">
+    <div class="test-grid" id="test-run">
+      <div class="test-cam">
+        <div class="preview-frame big">
+          <img id="test-preview" alt="Kamera önizləməsi (güzgü)">
+          <span class="preview-badge" id="test-badge"><span class="dot"></span><span id="test-badge-text">—</span></span>
+        </div>
+        <p class="caption">Üzünüz çərçivədə, kameraya düz baxın · model nəticələri test bitənə qədər gizlidir</p>
+      </div>
+      <div class="glass test-card">
+        <div class="test-top">
+          <span class="caption num" id="test-progress">—</span>
+          <div class="test-dots" id="test-dots"></div>
+        </div>
+        <div class="test-body">
+          <div class="test-ring-wrap">
+            <svg class="ring test-ring" viewBox="0 0 132 132" aria-hidden="true">
+              <circle class="track" cx="66" cy="66" r="56"/>
+              <circle class="value" id="test-ring" cx="66" cy="66" r="56"/>
+            </svg>
+            <span class="test-secs num" id="test-secs">—</span>
+          </div>
+          <span class="phase-pill" id="test-phase">—</span>
+          <h2 class="test-emotion" id="test-emotion">—</h2>
+          <p class="test-hint" id="test-hint">&nbsp;</p>
+        </div>
+        <button class="btn btn-plain danger" data-action="cancel-test">Testi dayandır</button>
+      </div>
+    </div>
+
+    <div class="scroll test-result" id="test-result" hidden>
+      <div class="result-head">
+        <div>
+          <h2 class="title2" id="result-title">Test nəticəsi</h2>
+          <p class="subhead" id="result-sub">Hər kadrın öz nəticəsi · yalnız üz görünən kadrlar</p>
+        </div>
+        <div class="result-actions">
+          <button class="btn btn-glass" data-action="start-test" data-icon="refresh"><span>Yenidən test et</span></button>
+          <button class="btn btn-primary" data-action="dismiss-test">Panelə qayıt</button>
+        </div>
+      </div>
+      <div class="glass list result-table" id="result-table"></div>
+      <p class="section-header">İfadələr üzrə düzgünlük</p>
+      <div class="glass result-heat" id="result-heat"></div>
+      <p class="caption result-note">Göstərilən (pozalı) ifadələr təbii ifadələrdən asandır — bu, yuxarı həddir. Model seçimi üçün sahədəki sorğu cavabları ilə birlikdə baxın. Ətraflı: <code>python -m src.report</code>.</p>
+    </div>
+  </section>
+
+  <!-- 4. Dayandırıldı / bitdi / xəta -->
+  <section class="screen center" id="ended">
+    <div class="narrow ended-wrap">
+      <div class="ended-icon" id="ended-icon"></div>
+      <h2 class="title2" id="ended-title">Dayandırıldı</h2>
+      <p class="subhead" id="ended-sub">Kamera bağlıdır. Nəticələr saxlanıldı.</p>
+      <div class="glass list ended-card" id="ended-card">
+        <div class="kv"><span>Yazılan sətir</span><span class="num" id="ended-records">0</span></div>
+        <div class="kv"><span>Sorğu cavabı</span><span class="num" id="ended-reports">0</span></div>
+        <div class="kv"><span>Fayl</span><span class="path" id="ended-path">—</span></div>
+      </div>
+      <div class="ended-actions">
+        <button class="btn btn-primary" data-action="restart" data-icon="refresh"><span id="restart-label">Yenidən başla</span></button>
+        <button class="btn btn-plain" data-action="close">Bağla</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<!-- Nəzarətli testə başlamazdan əvvəl: tester ID və şəkil razılığı -->
+<div class="sheet-backdrop" id="test-setup" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="setup-title">
+    <div class="app-icon sm" data-icon="scan"></div>
+    <h2 class="title2" id="setup-title">Nəzarətli test</h2>
+    <p class="subhead" id="setup-sub">—</p>
+    <label class="field">
+      <span class="caption">Test olunan şəxsin anonim ID-si — ad yazmayın</span>
+      <input id="tester-id" maxlength="32" placeholder="T-01" autocomplete="off" spellcheck="false">
+    </label>
+    <p class="field-error" id="setup-error" hidden></p>
+    <div class="glass list setup-consent" id="setup-consent">
+      <div class="row toggle-row">
+        <span class="tile" style="background:var(--indigo)" data-icon="database"></span>
+        <div class="text" style="flex:1">
+          <p class="headline">Şəkilləri araşdırma üçün saxla</p>
+          <p class="caption">Yalnız “saxlama” anlarında, üz ətrafında kəsik · <code>dataset/</code> qovluğu · şəbəkəyə getmir · istənilən vaxt silinə bilər</p>
+        </div>
+        <button class="switch" role="switch" aria-checked="false" id="save-switch" aria-label="Şəkilləri saxla"></button>
+      </div>
+    </div>
+    <p class="caption setup-note" id="setup-note">Açarı yalnız test olunan şəxs razı olduqda yandırın.</p>
+    <div class="sheet-actions">
+      <button class="btn btn-glass" data-action="close-setup">Ləğv et</button>
+      <button class="btn btn-primary" data-action="confirm-test">Testi başla</button>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script src="mock.js" data-dev></script>
+<script src="main.js"></script>
+</body>
+</html>

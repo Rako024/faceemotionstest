@@ -1,0 +1,140 @@
+# Emosiya Pilotu — konfiqurasiya
+# Bu PİLOT/TEST alətidir: modelin real dəqiqliyini ölçmək üçün.
+
+# Anonim operator ID. Ad, soyad və ya e-poçt YAZMAYIN.
+# Format: 2–32 simvol (hərf, rəqəm, "-" və "_"), ən azı bir rəqəm olmalıdır.
+operator_id: "OP-7F3A"
+
+model:
+  # enet_b0_8_best_afew (default) | enet_b0_8_va_mtl | enet_b2_8 | mbf_va_mtl
+  # "_va_mtl" modelləri əlavə olaraq valence/arousal qaytarır.
+  name: enet_b0_8_best_afew
+  # onnx  → yalnız CPU (kitabxana providerləri CPUExecutionProvider-ə bağlayır)
+  # torch → CPU və ya CUDA (requirements-gpu.txt lazımdır)
+  engine: onnx
+  device: cpu                   # cpu | cuda (cuda yalnız engine: torch ilə)
+  # Flip TTA: üz həm orijinal, həm güzgü əksi ilə qiymətləndirilir, ehtimallar ortalanır.
+  # Model vaxtı ~2 dəfə artır. Faydası python -m src.evaluate ilə yoxlanır.
+  flip_tta: false
+
+# Modellərin müqayisəsi: eyni üz kəsiyi bir neçə modelə verilir, hər biri öz
+# smoothing-i ilə işləyir və CSV-yə ayrıca sətir yazır (model_name sütunu).
+compare:
+  # off  → yalnız model.name
+  # auto → aşağıdakı modellər, cəmi vaxt büdcəyə sığdığı qədər (ağırlar avtomatik söndürülür)
+  # on   → aşağıdakı modellərin hamısı, büdcəyə baxmadan
+  mode: auto
+  models:
+    - enet_b0_8_best_afew
+    - deepface_emotion
+    - vit_fer2013
+    - kaggle_fer_cnn
+  # auto: bir analizdə bütün modellərin cəmi vaxtı analiz intervalının bu payını keçməsin
+  # (1.5 kadr/san → interval 667 ms → büdcə 333 ms)
+  budget_ratio: 0.5
+
+detector:
+  model_path: models/face_detection_yunet_2023mar.onnx
+  score_threshold: 0.8          # bundan aşağı confidence olan kadrlar atılır
+  nms_threshold: 0.3
+  max_input_side: 640           # aşkarlamadan əvvəl kadr bu ölçüyə kiçildilir
+  min_face_px: 80               # daha kiçik üz → "üz yoxdur" (çox uzaq)
+  edge_margin_px: 4             # üz kadrın kənarına bu qədər yaxındırsa → kəsik say
+  max_yaw_ratio: 0.35           # burnun göz ortasından sapması / göz arası məsafə
+  max_roll_deg: 25              # göz xəttinin bucağı
+  # Örtülmə (əl, mikrofon, əşya) evristikası: göz və ağız ətrafındakı detalların
+  # (gradient sıxlığı) bütün üzə nisbəti bundan aşağıdırsa → "üz yoxdur".
+  # YuNet örtülmüş üzü də yüksək confidence ilə tapır, ona görə bu yoxlama lazımdır.
+  # 0 → söndürülür.
+  min_region_detail: 0.45
+  crop_margin: 0.1              # modelə verilən kəsikdə üzün ətrafına əlavə sahə
+  # Kəsikdən əvvəl üzü göz xəttinə görə düzləndir (gözlər üfüqi). EmotiEffLib-in bəzi
+  # öyrədilmə versiyalarında AffectNet üzləri belə düzləndirilib.
+  align: false
+
+capture:
+  camera_index: 0
+  width: 1280
+  height: 720
+  analysis_fps: 1.5             # saniyədə emal olunan kadr sayı (0.2–2)
+
+smoothing:
+  window_seconds: 10            # hərəkətli ortalama pəncərəsi
+  min_frames: 3                 # nəticə göstərmək üçün pəncərədə minimum üzlü kadr
+  uncertain_threshold: 0.3      # ən yüksək ehtimal bundan aşağı → "qeyri-müəyyən"
+
+self_report:
+  enabled: true
+  interval_minutes: 10          # sorğu tezliyi
+  timeout_seconds: 30           # cavabsız qalsa avtomatik bağlanır
+  # kod: ekranda görünən ad (CSV-də kod saxlanılır)
+  categories:
+    neutral: "Neytral"
+    happy: "Yaxşı / Xoşbəxt"
+    tired: "Yorğun"
+    angry: "Əsəbi"
+    sad: "Kədərli"
+    stressed: "Stresli"
+  decline_label: "Cavab vermək istəmirəm"
+
+# Modelin 8 sinfi → operatorun öz cavab kateqoriyası (hesabatda müqayisə üçün).
+# "tired" (Yorğun) üçün modeldə birbaşa qarşılıq yoxdur.
+mapping:
+  Anger: angry
+  Contempt: angry
+  Disgust: angry
+  Fear: stressed
+  Happiness: happy
+  Neutral: neutral
+  Sadness: sad
+  Surprise: stressed
+
+# Nəzarətli test: ekranda ifadə göstərişləri, tapşırılan ifadə CSV-yə "expected" kimi
+# yazılır (record_type: test). Qiymətləndirmə hər kadrın öz nəticəsi ilə aparılır
+# (10 s ortalama yox), test kadrları sahə statistikasına qarışmır.
+test:
+  # EmotiEffLib sinifləri. Contempt (Həqarət) FER2013 modellərində yoxdur və göstərilməsi çətindir.
+  expressions: [Neutral, Happiness, Sadness, Surprise, Anger, Fear, Disgust]
+  rounds: 2                     # hər ifadə neçə dəfə
+  intro_seconds: 4              # başlanğıcda hazırlıq
+  prepare_seconds: 3            # hər ifadədən əvvəl: göstərişi oxuyub ifadəyə keçmək
+  hold_seconds: 8               # ifadəni saxlamaq — yalnız bu müddətin kadrları qiymətləndirilir
+  rest_seconds: 2               # ifadələr arası rahatlama
+  shuffle: true                 # raund daxilində sıra təsadüfi (Neytral həmişə birinci)
+
+# Araşdırma: nəzarətli testin kadrlarını diskə yazmaq (hansı model hansı ayarlarda
+# ən yaxşıdır — python -m src.evaluate). Adi monitorinqdə şəkil HEÇ VAXT yazılmır.
+# Hər testdən əvvəl tester ekranda ayrıca razılıq verir; yalnız "saxlama" mərhələsinin
+# kadrları, üz ətrafında kəsilmiş şəkildə saxlanılır. Silmək: python -m src.dataset --delete <sessiya>
+research:
+  save_test_frames: true        # false → razılıq seçimi göstərilmir, heç nə yazılmır
+  dir: dataset
+  crop_margin: 0.6              # saxlanılan şəkildə üz qutusunun ətrafına sahə (sonra yenidən kəsmək üçün)
+  jpeg_quality: 95
+
+logging:
+  dir: logs                     # CSV faylları: logs/YYYY-MM-DD_<operator_id>.csv
+
+ui:
+  # Operator modelin nəticəsini ekranda görsün? Dəqiqliyi qərəzsiz ölçmək üçün
+  # false ("kor rejim") tövsiyə olunur: nəticəni görən operatorun öz cavabı
+  # ona "uyğunlaşa" bilər. Bu halda CSV yenə tam yazılır.
+  show_prediction: true
+  show_preview: false           # kamera önizləməsi (yalnız yaddaşda, diskə yazılmır)
+  preview_fps: 8
+  material: auto                # auto | mica | acrylic | none — Windows 11 şüşə fonu
+
+privacy:
+  block_network: true           # modellər yükləndikdən sonra bütün şəbəkə bağlantılarını blokla
+
+report:
+  dir: reports
+  min_group_size: 3             # bundan az operator varsa hesabatda xəbərdarlıq
+  # İxtiyari, yalnız _va_mtl modelləri üçün: aşağı arousal → "tired"
+  va_tired_rule:
+    enabled: false
+    arousal_max: -0.3
+
+benchmark:
+  frames: 60
+  warmup: 5

@@ -1,0 +1,44 @@
+# Python / mühit
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+*.part
+
+# Model çəkiləri (scripts/download_models.py ilə endirilir)
+models/
+*.onnx
+*.h5
+*.pt
+*.pth
+
+# Məlumat: loglar, hesabatlar, araşdırma şəkilləri və onların keşi
+logs/
+reports/
+dataset/
+.cache/
+*.csv
+*.npz
+*.npy
+
+# Şəkil və video (heç bir media repoya düşmür; test şəkli skriptlə endirilir)
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.webp
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# Lokal vəziyyət və alət faylları
+local_state.json
+ruvector.db
+*.db
+.claude/
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store

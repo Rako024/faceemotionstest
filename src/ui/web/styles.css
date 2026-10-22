@@ -1,0 +1,280 @@
+/* Emosiya Pilotu — dizayn sistemi
+   Apple HIG prinsipləri: aydınlıq, dərinlik, hörmət (deference).
+   Materiallar: "liquid glass" kartlar, sistem rəngləri, SF/Segoe Variable tipoqrafiyası. */
+
+:root {
+  color-scheme: light dark;
+  --font-text: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+
+  --label: rgba(0, 0, 0, 0.88);
+  --label-2: rgba(60, 60, 67, 0.64);
+  --label-3: rgba(60, 60, 67, 0.36);
+  --fill: rgba(120, 120, 128, 0.12);
+  --fill-2: rgba(120, 120, 128, 0.2);
+  --hairline: rgba(60, 60, 67, 0.12);
+
+  --wall: #eef0f6;
+  --glass: rgba(255, 255, 255, 0.58);
+  --glass-strong: rgba(255, 255, 255, 0.76);
+  --glass-edge: rgba(255, 255, 255, 0.75);
+  --glass-sheen: rgba(255, 255, 255, 0.55);
+  --menu-bg: rgba(250, 250, 252, 0.94);
+  --shadow: 0 1px 2px rgba(20, 20, 50, 0.04), 0 10px 30px rgba(40, 40, 90, 0.08);
+
+  --blue: #007aff;
+  --green: #34c759;
+  --red: #ff3b30;
+  --orange: #ff9500;
+  --yellow: #ffcc00;
+  --indigo: #5856d6;
+  --purple: #af52de;
+  --teal: #30b0c7;
+  --gray: #8e8e93;
+
+  --emo-Anger: var(--red);
+  --emo-Contempt: var(--purple);
+  --emo-Disgust: var(--green);
+  --emo-Fear: var(--indigo);
+  --emo-Happiness: var(--orange);
+  --emo-Neutral: var(--teal);
+  --emo-Sadness: var(--blue);
+  --emo-Surprise: var(--yellow);
+
+  --accent: var(--blue);
+  --ambient-a: #9db7ff;
+  --ambient-b: #ffc7b5;
+  --ambient-c: #b8f0dc;
+
+  --r-xl: 26px;
+  --r-lg: 20px;
+  --r-md: 14px;
+  --r-sm: 10px;
+  --spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --label: rgba(255, 255, 255, 0.92);
+    --label-2: rgba(235, 235, 245, 0.62);
+    --label-3: rgba(235, 235, 245, 0.32);
+    --fill: rgba(118, 118, 128, 0.24);
+    --fill-2: rgba(118, 118, 128, 0.34);
+    --hairline: rgba(255, 255, 255, 0.08);
+
+    --wall: #101014;
+    --glass: rgba(40, 40, 46, 0.52);
+    --glass-strong: rgba(44, 44, 50, 0.72);
+    --glass-edge: rgba(255, 255, 255, 0.1);
+    --glass-sheen: rgba(255, 255, 255, 0.08);
+    --menu-bg: rgba(38, 38, 44, 0.95);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.35);
+
+    --blue: #0a84ff;
+    --green: #30d158;
+    --red: #ff453a;
+    --orange: #ff9f0a;
+    --yellow: #ffd60a;
+    --indigo: #5e5ce6;
+    --purple: #bf5af2;
+    --teal: #40cbe0;
+    --gray: #8e8e93;
+
+    --ambient-a: #2b3f8f;
+    --ambient-b: #6a2f4a;
+    --ambient-c: #1f5a4c;
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: var(--font-text);
+  font-size: 15px;
+  line-height: 1.38;
+  color: var(--label);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  overflow: hidden;
+  background: var(--wall);
+  cursor: default;
+}
+/* Windows 11 Mica/Acrylic aktivdirsə — fon OS materialından gəlir */
+html.material body { background: transparent; }
+
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: default; }
+button:focus-visible, [tabindex]:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+svg.i.fill { fill: currentColor; stroke: none; }
+
+/* ---------- ambient fon (şüşənin arxasında rəngli işıq) ---------- */
+.ambient { position: fixed; inset: -20%; z-index: -1; pointer-events: none; filter: blur(60px) saturate(140%); }
+.ambient i {
+  position: absolute; width: 60%; aspect-ratio: 1; border-radius: 50%; opacity: 0.55;
+  transition: background 1.6s var(--ease-out);
+  animation: drift 26s ease-in-out infinite alternate;
+}
+.ambient .b1 { background: var(--ambient-a); left: 5%; top: 0%; }
+.ambient .b2 { background: var(--ambient-b); right: 0%; top: 25%; animation-duration: 32s; animation-delay: -8s; }
+.ambient .b3 { background: var(--ambient-c); left: 20%; bottom: 0%; animation-duration: 38s; animation-delay: -15s; }
+html.material .ambient i { opacity: 0.38; }
+@keyframes drift {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(6%, -4%) scale(1.08); }
+  100% { transform: translate(-5%, 5%) scale(0.96); }
+}
+
+/* ---------- material ---------- */
+.glass {
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 42%), var(--glass);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+  border-radius: var(--r-lg);
+  box-shadow: inset 0 0 0 0.5px var(--glass-edge), inset 0 1px 0 var(--glass-sheen), var(--shadow);
+}
+
+/* ---------- başlıq zolağı (macOS) ---------- */
+.titlebar {
+  height: 44px; display: flex; align-items: center; padding: 0 14px; gap: 8px; position: relative; z-index: 5;
+}
+.traffic { display: flex; gap: 8px; }
+.tl {
+  width: 12px; height: 12px; border-radius: 50%; position: relative;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.18);
+  display: grid; place-items: center;
+}
+.tl.close { background: #ff5f57; }
+.tl.min { background: #febc2e; }
+.tl.zoom { background: #28c840; }
+.tl svg { width: 8px; height: 8px; stroke: rgba(0, 0, 0, 0.55); stroke-width: 2.6; opacity: 0; transition: opacity 0.12s; }
+.traffic:hover .tl svg { opacity: 1; }
+.titlebar .title {
+  position: absolute; left: 0; right: 0; text-align: center; pointer-events: none;
+  font: 600 13px var(--font-text); color: var(--label-2); letter-spacing: -0.01em;
+}
+
+/* ---------- ekranlar ---------- */
+main { position: absolute; inset: 44px 0 0 0; }
+.screen {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  opacity: 0; transform: translateY(14px) scale(0.985); pointer-events: none;
+  transition: opacity 0.38s var(--spring), transform 0.5s var(--spring);
+}
+.screen.active { opacity: 1; transform: none; pointer-events: auto; }
+.scroll {
+  flex: 1; overflow-y: auto; overflow-x: hidden; padding: 6px 18px 22px; scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 calc(100% - 22px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 calc(100% - 22px), transparent 100%);
+}
+.scroll::-webkit-scrollbar { display: none; }
+.dock { padding: 4px 18px 18px; display: grid; gap: 6px; }
+
+/* ---------- tipoqrafiya ---------- */
+.large-title { font: 700 26px/1.15 var(--font-display); letter-spacing: -0.022em; margin: 0; }
+.title2 { font: 600 20px/1.2 var(--font-display); letter-spacing: -0.018em; margin: 0; }
+.headline { font: 600 15px/1.3 var(--font-text); letter-spacing: -0.01em; margin: 0; }
+.subhead { font-size: 14px; color: var(--label-2); margin: 0; }
+.footnote { font-size: 13px; color: var(--label-2); margin: 0; }
+.caption { font-size: 12px; color: var(--label-2); margin: 0; }
+.section-header {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--label-2); margin: 18px 6px 8px;
+}
+
+/* ---------- düymələr ---------- */
+.btn {
+  height: 50px; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  font: 600 16px var(--font-text); letter-spacing: -0.01em; width: 100%;
+  transition: transform 0.18s var(--spring), filter 0.18s, background 0.2s;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 55%), var(--accent);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 18px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.btn-primary:hover { filter: brightness(1.06); }
+.btn-destructive { background: color-mix(in srgb, var(--red) 14%, transparent); color: var(--red); }
+.btn-destructive:hover { background: color-mix(in srgb, var(--red) 20%, transparent); }
+.btn-glass { background: var(--glass-strong); box-shadow: inset 0 0 0 0.5px var(--glass-edge), var(--shadow); }
+.btn-plain { height: 40px; color: var(--accent); font-weight: 500; }
+.btn-plain:hover { filter: brightness(1.15); }
+.btn .i { width: 18px; height: 18px; }
+
+/* ---------- qruplaşdırılmış siyahı (iOS Settings) ---------- */
+.list { padding: 2px 0; overflow: hidden; }
+.row { display: flex; gap: 12px; align-items: flex-start; padding: 11px 14px; position: relative; }
+.row + .row::before { content: ""; position: absolute; top: 0; left: 56px; right: 0; height: 0.5px; background: var(--hairline); }
+.tile {
+  width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; color: #fff; flex: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+.tile .i { width: 18px; height: 18px; stroke-width: 2; }
+.row .text { min-width: 0; }
+.row .headline { margin-bottom: 1px; }
+
+.kv { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; font-size: 14px; position: relative; }
+.kv + .kv::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; height: 0.5px; background: var(--hairline); }
+.kv span:last-child { color: var(--label-2); text-align: right; }
+
+.disclosure {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  margin: 16px 0 0; padding: 8px 6px; color: var(--label-2); font-size: 13px; font-weight: 500;
+}
+.disclosure .i { width: 16px; height: 16px; transition: transform 0.35s var(--spring); }
+.disclosure[aria-expanded="true"] .i { transform: rotate(180deg); }
+.collapse { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.45s var(--spring); }
+.collapse > div { overflow: hidden; }
+.collapse.open { grid-template-rows: 1fr; }
+
+/* ---------- çiplər ---------- */
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 500; background: var(--fill); color: var(--label-2); white-space: nowrap;
+}
+.chip.live { background: color-mix(in srgb, var(--green) 16%, transparent); color: color-mix(in srgb, var(--green) 70%, var(--label)); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.chip.live .dot { background: var(--green); animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 55%, transparent); }
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--green) 0%, transparent); }
+}
+
+/* ---------- iOS açar ---------- */
+.switch { width: 51px; height: 31px; border-radius: 999px; background: var(--fill-2); position: relative; flex: none; transition: background 0.25s; }
+.switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16);
+  transition: transform 0.35s var(--spring), width 0.2s;
+}
+.switch[aria-checked="true"] { background: var(--green); }
+.switch[aria-checked="true"]::after { transform: translateX(20px); }
+.switch:active::after { width: 32px; }
+.switch[aria-checked="true"]:active::after { transform: translateX(15px); }
+
+/* ---------- iOS fəaliyyət indikatoru ---------- */
+.spinner { width: 34px; height: 34px; position: relative; }
+.spinner i {
+  position: absolute; left: 50%; top: 0; width: 3px; height: 9px; margin-left: -1.5px; border-radius: 2px;
+  background: var(--label-2); transform-origin: 50% 17px; animation: spin-fade 1s linear infinite;
+}
+
+/* ---------- animasiyalar ---------- */
+@keyframes spin-fade { 0% { opacity: 1; } 100% { opacity: 0.15; } }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
+.stagger > * { animation: rise 0.6s var(--spring) both; }
+.stagger > *:nth-child(2) { animation-delay: 0.04s; }
+.stagger > *:nth-child(3) { animation-delay: 0.08s; }
+.stagger > *:nth-child(4) { animation-delay: 0.12s; }
+.stagger > *:nth-child(5) { animation-delay: 0.16s; }
+.stagger > *:nth-child(6) { animation-delay: 0.2s; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
