@@ -78,8 +78,8 @@ python scripts/download_models.py --extra
 
 | Açar (`model.name`) | UI adı | Dataset | Sinif | Lisenziya | CPU, ms/üz* |
 |---|---|---|---|---|---|
-| `enet_b0_8_best_afew` (default) | enet_b0 · afew | AffectNet | 8 | Apache-2.0 kod; çəkilər qeyri-kommersiya | 12 |
-| `enet_b0_8_va_mtl` | enet_b0 · VA | AffectNet | 8 + valentlik/oyanma | 〃 | 12 |
+| `enet_b0_8_best_afew` | enet_b0 · afew | AffectNet | 8 | Apache-2.0 kod; çəkilər qeyri-kommersiya | 12 |
+| `enet_b0_8_va_mtl` (default) | enet_b0 · VA | AffectNet | 8 + valentlik/oyanma | 〃 | 12 |
 | `enet_b2_8` | enet_b2 | AffectNet | 8 | 〃 | 25 |
 | `mbf_va_mtl` | mbf · VA | AffectNet | 8 + valentlik/oyanma | 〃 | 10 |
 | `deepface_emotion` | DeepFace | FER2013 | 7 (Həqarət yoxdur) | MIT (DeepFace) | 1 |
@@ -146,7 +146,7 @@ tipoqrafiyası. Sistemin açıq/qaranlıq temasını izləyir. Windows 11-də p�
 | Pəncərə | Nə göstərir |
 |---|---|
 | **Razılıq ekranı** | Nə ölçülür, nə saxlanılır, heç nəyin göndərilmədiyi, “Dayandır” imkanı. **Kamera seçimi** (“Dəyiş”) — kamera açılmadan, yalnız adlarla. Razılıq verilmədən kamera **açılmır**. “İmtina et” proqramı kamerasız bağlayır. |
-| **Əsas panel** (geniş, ~1240×800) | **Solda:** kamera önizləməsi (üz statusu ilə), əsas modelin smoothed nəticəsi, üz statusu, gecikmə, CPU, növbəti sorğuya qalan vaxt, böyük **Dayandır** düyməsi. **Sağda:** hər aktiv model üçün kart (8 ehtimalın hamısı, gecikmə, valentlik/oyanma); "Razılaşma 3/3" göstəricisi; hesablama büdcəsi zolağı; **son 60 saniyənin zaman xətti** — hər modelin nə dediyi rənglə; aktiv olmayan və quraşdırılmamış modellər siyahısı. **Başlıqda:** kamera menyusu, əsas model menyusu və Tək/Avto/Hamısı seçicisi. Yaşıl “trafik işığı” yalnız əsas nəticəni göstərən kiçik pəncərəyə keçirir. |
+| **Əsas panel** (geniş, ~1240×800) | **Solda:** kamera önizləməsi (üz statusu ilə), əsas modelin smoothed nəticəsi (son 10 s) və altında **“Anlıq”** göstərici — son kadrın öz nəticəsi, ortalamasız, ~1 saniyədə dəyişir (nöqtə hər yeni kadrda döyünür; yalnız ekranda, CSV və hesabat 10 s ortalamanı yazır), üz statusu, gecikmə, CPU, növbəti sorğuya qalan vaxt, böyük **Dayandır** düyməsi. **Sağda:** hər aktiv model üçün kart (10 s ortalama, anlıq nəticə, 8 ehtimalın hamısı, gecikmə, valentlik/oyanma); "Razılaşma 3/3" göstəricisi; hesablama büdcəsi zolağı; **son 60 saniyənin zaman xətti** — hər modelin nə dediyi rənglə; aktiv olmayan və quraşdırılmamış modellər siyahısı. **Başlıqda:** kamera menyusu, əsas model menyusu və Tək/Avto/Hamısı seçicisi. Yaşıl “trafik işığı” yalnız əsas nəticəni göstərən kiçik pəncərəyə keçirir. |
 | **Kamera indikatoru** | Ekranın yuxarı mərkəzində “Dynamic Island” tipli kapsul. Kamera açıq olduğu müddətdə həmişə görünür, öz **Dayandır** düyməsi var. Taskbar-da görünmür. |
 | **Əhval sorğusu** | Sağ aşağı küncdə bildiriş. **Fokusu oğurlamır** (operator CRM-də yazmağa davam edir), 30 saniyədə özü bağlanır. |
 
@@ -220,7 +220,7 @@ Arxa planda başqa üz görünsə belə, yalnız **ən böyük üz** götürül�
 | Açar | Default | İzah |
 |---|---|---|
 | `operator_id` | `OP-7F3A` | **Anonim** ID. Ad yazmayın — validasiya rəqəm tələb edir. |
-| `model.name` | `enet_b0_8_best_afew` | Əsas model — [Modellər](#modellər-və-müqayisə) cədvəlindəki istənilən açar |
+| `model.name` | `enet_b0_8_va_mtl` | Əsas model — [Modellər](#modellər-və-müqayisə) cədvəlindəki istənilən açar. VA nəzarətli testlərdə afew-dan yaxşı çıxdığı üçün default-dur; afew `compare.models`-də müqayisə üçün qalır. |
 | `model.engine` | `onnx` | `onnx` yalnız CPU-dur (kitabxana `CPUExecutionProvider`-ə bağlıdır). GPU üçün `torch` (yalnız EmotiEffLib). |
 | `model.device` | `cpu` | `cuda` yalnız `engine: torch` ilə. CUDA yoxdursa, xəbərdarlıqla CPU-ya keçir. |
 | `model.flip_tta` | `false` | Hər kadr həm də güzgü əksi ilə proqnozlaşdırılır, ehtimallar ortalanır (2× vaxt) |
@@ -232,7 +232,7 @@ Arxa planda başqa üz görünsə belə, yalnız **ən böyük üz** götürül�
 | `detector.align` | `false` | Kəsikdən əvvəl gözləri üfüqi et (baş əyikliyini düzəlt) |
 | `capture.camera_index` | `0` | Seçim edilməyibsə və ya seçilmiş kamera qoşulmayıbsa istifadə olunan kamera (UI-dakı seçim üstündür) |
 | `capture.analysis_fps` | `1.5` | Saniyədə emal olunan kadr (0.2–2). 30 FPS emal edilmir. |
-| `smoothing.window_seconds` | `10` | Hərəkətli ortalama pəncərəsi |
+| `smoothing.window_seconds` | `10` | Hərəkətli ortalama pəncərəsi — panelin əsas nəticəsi, CSV və hesabat. İfadə dəyişəndə nəticə ~3–5 s sonra dəyişir; ani reaksiya paneldəki “Anlıq” göstəricidədir |
 | `smoothing.min_frames` | `3` | Nəticə göstərmək üçün minimum kadr |
 | `smoothing.uncertain_threshold` | `0.3` | Ən yüksək ehtimal bundan aşağı → qeyri-müəyyən. 8 sinifdə təsadüfi səviyyə 12,5%-dir; aşağı hədd daha çox nəticə, amma daha çox səhv deməkdir (bax `python -m src.evaluate` — əminlik həddi cədvəli) |
 | `self_report.interval_minutes` | `10` | Sorğu tezliyi |

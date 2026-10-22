@@ -6,9 +6,10 @@
 operator_id: "OP-7F3A"
 
 model:
-  # enet_b0_8_best_afew (default) | enet_b0_8_va_mtl | enet_b2_8 | mbf_va_mtl
+  # enet_b0_8_va_mtl (default) | enet_b0_8_best_afew | enet_b2_8 | mbf_va_mtl | mobilevit_va_mtl
   # "_va_mtl" modelləri əlavə olaraq valence/arousal qaytarır.
-  name: enet_b0_8_best_afew
+  # VA nəzarətli testlərdə afew-dan yaxşı çıxıb (balanslı ~82% vs ~71%); afew müqayisədə qalır.
+  name: enet_b0_8_va_mtl
   # onnx  → yalnız CPU (kitabxana providerləri CPUExecutionProvider-ə bağlayır)
   # torch → CPU və ya CUDA (requirements-gpu.txt lazımdır)
   engine: onnx

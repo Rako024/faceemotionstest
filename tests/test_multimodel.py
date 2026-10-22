@@ -29,6 +29,7 @@ def _need(*keys):
 def cmp_config(make_config, tmp_path):
     return make_config(
         logging__dir=str(tmp_path / "logs"),
+        model__name="enet_b0_8_best_afew",
         compare__mode="on",
         compare__models=["enet_b0_8_best_afew", "deepface_emotion", "vit_fer2013", "kaggle_fer_cnn"],
     )
@@ -157,7 +158,7 @@ def test_self_report_logs_every_active_model(cmp_config, session_factory):
 
 def test_switch_primary_while_running(make_config, tmp_path, session_factory):
     _need("deepface_emotion")
-    cfg = make_config(logging__dir=str(tmp_path / "logs"), compare__mode="off")
+    cfg = make_config(logging__dir=str(tmp_path / "logs"), model__name="enet_b0_8_best_afew", compare__mode="off")
     s = session_factory(cfg)
     s.accept_consent()
     assert wait_for(lambda: s.phase is Phase.RUNNING, timeout=20)

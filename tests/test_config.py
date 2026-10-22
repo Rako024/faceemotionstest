@@ -5,7 +5,7 @@ from src.config import EMOTION_CLASSES, PROJECT_ROOT, ConfigError, load_config
 
 def test_default_config_loads():
     cfg = load_config()
-    assert cfg.model.name == "enet_b0_8_best_afew"
+    assert cfg.model.name == "enet_b0_8_va_mtl"
     assert cfg.model.engine == "onnx"
     assert cfg.detector.score_threshold == 0.8
     assert cfg.smoothing.window_seconds == 10

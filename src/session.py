@@ -624,6 +624,7 @@ class Session:
             "models": self._models_state(last),
             "budget": None,
             "agreement": None,
+            "instant": None,
             "test": self._test_state() if self.phase is Phase.RUNNING else None,
             "cameras": [{"index": c.index, "name": c.name} for c in self.cameras],
             "camera": {"index": self.camera.index, "name": self.camera.name} if self.camera else None,
@@ -640,6 +641,7 @@ class Session:
         data["latency_ms"] = round(last.detector_ms + last.models_ms, 1)
         data["detector_ms"] = round(last.detector_ms, 1)
         data["result"] = self._result_dict(last.smoothed)
+        data["instant"] = self._instant_dict(last.prediction)
         data["agreement"] = self._agreement(last)
         return data
 
@@ -664,6 +666,17 @@ class Session:
                 arousal=None if s.arousal is None else round(s.arousal, 3),
             )
         return result
+
+    def _instant_dict(self, prediction) -> dict[str, Any]:
+        """Son kadrın öz nəticəsi (ortalamasız) — yalnız paneldə “anlıq” göstərici üçün.
+
+        CSV, hesabat və sorğu müqayisəsi 10 s ortalamada qalır.
+        """
+        raw = raw_result(prediction, self.cfg.smoothing.uncertain_threshold)
+        out: dict[str, Any] = {"status": raw.status.value}
+        if self.cfg.ui.show_prediction and raw.has_estimate:
+            out.update(top=raw.top_emotion, top_label=EMOTION_LABELS[raw.top_emotion], top_prob=round(raw.top_prob, 4))
+        return out
 
     def _models_state(self, last: FrameResult | None) -> list[dict[str, Any]]:
         from .model_zoo import SPECS, is_installed
@@ -702,6 +715,7 @@ class Session:
                 "reason": None if enabled else reason,
                 "ms": None if not (runner and runner.ms_ema) else round(runner.ms_ema, 1),
                 "result": self._result_dict(o.smoothed, classes) if o else None,
+                "instant": self._instant_dict(o.prediction) if o else None,
                 "history": history,
             })
         return out

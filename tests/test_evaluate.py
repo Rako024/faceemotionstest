@@ -138,6 +138,9 @@ class FakeRecognizer:
 
 
 def test_run_evaluation_finds_best_margin_and_caches(cfg, tmp_path):
+    from dataclasses import replace
+
+    cfg = replace(cfg, model=replace(cfg.model, name="enet_b0_8_best_afew"))  # canlı model sınananlardandır
     make_dataset(tmp_path)
     samples = load_samples(tmp_path)
     assert len(samples) == 27

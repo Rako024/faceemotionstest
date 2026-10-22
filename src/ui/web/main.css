@@ -120,6 +120,21 @@
 .hero.no-face .hero-label, .hero.warming .hero-label { color: var(--label-2); }
 .hero-model { margin-top: 4px; }
 
+/* anlıq göstərici — son kadrın öz nəticəsi (ortalamasız) */
+.instant {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; margin: 8px 0 2px; padding: 3px 10px 3px 8px;
+  border-radius: 999px; background: var(--fill); font-size: 12px; line-height: 18px; white-space: nowrap;
+}
+.instant .dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--dot, var(--label-3)); transition: background 0.25s; }
+.instant .dot.beat { animation: beat 0.5s var(--spring); }
+@keyframes beat { 0% { transform: scale(1); } 35% { transform: scale(1.7); } 100% { transform: scale(1); } }
+.instant .i-cap { color: var(--label-2); }
+.instant .i-label { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.instant .i-pct { color: var(--label-2); }
+.instant.weak .i-label { color: var(--label-2); font-weight: 500; }
+.instant.sm { margin: 2px 0 6px; padding: 2px 8px 2px 7px; font-size: 11px; line-height: 16px; }
+@media (prefers-reduced-motion: reduce) { .instant .dot.beat { animation: none; } }
+
 /* metrikalar */
 .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .metric-card { padding: 12px 14px; border-radius: var(--r-md); position: relative; }

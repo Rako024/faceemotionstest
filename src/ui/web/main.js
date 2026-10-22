@@ -81,6 +81,7 @@ function renderHero(st) {
   setText($("#hero-model"), primary ? `Əsas model · ${primary.label}` : "");
 
   const kicker = `Son ${BOOT.window_seconds} saniyə`;
+  renderInstant($("#hero-instant"), mode === "no-face" ? null : st.instant, st.frames);
   if (mode === "no-face") {
     $("#ring-icon").innerHTML = icon("face-off");
     ring.style.strokeDashoffset = CIRC;
@@ -92,7 +93,7 @@ function renderHero(st) {
     ring.style.removeProperty("stroke-dashoffset");
     setText($("#hero-kicker"), kicker);
     setText($("#hero-label"), "Toplanır…");
-    setText($("#hero-sub"), `${r ? r.n_frames : 0} / ${BOOT.min_frames} kadr — tək kadr göstərilmir`);
+    setText($("#hero-sub"), `${r ? r.n_frames : 0} / ${BOOT.min_frames} kadr toplanır`);
   } else if (mode === "blind") {
     $("#ring-icon").innerHTML = icon("check");
     hero.style.setProperty("--ring", "var(--green)");
@@ -114,6 +115,31 @@ function renderHero(st) {
       setText($("#hero-sub"), `Ən yüksək: ${r.top_label} ${pct(r.top_prob)} — ${Math.round(BOOT.uncertain_threshold * 100)}%-dən az`);
       setAmbient(null);
     }
+  }
+}
+
+/* Anlıq: son kadrın öz nəticəsi (ortalamasız). Nöqtə hər yeni analiz kadrında bir dəfə döyünür. */
+function renderInstant(el, inst, frames) {
+  if (!el) return;
+  el.hidden = !inst || !BOOT.show_prediction || !(inst.top || inst.status === "no_face");
+  if (el.hidden) return;
+  const ok = inst.status === "ok";
+  if (inst.top) {
+    setText(el.querySelector(".i-label"), inst.top_label);
+    setText(el.querySelector(".i-pct"), pct(inst.top_prob));
+  } else {
+    setText(el.querySelector(".i-label"), "üz yoxdur");
+    setText(el.querySelector(".i-pct"), "");
+  }
+  el.classList.toggle("weak", !ok);
+  el.style.setProperty("--dot", ok ? `var(--emo-${inst.top})` : "var(--label-3)");
+  el.setAttribute("aria-label", `Anlıq: ${inst.top ? `${inst.top_label} ${pct(inst.top_prob)}${ok ? "" : ", qeyri-müəyyən"}` : "üz yoxdur"}`);
+  if (frames != null && el.dataset.frame !== String(frames)) {
+    el.dataset.frame = String(frames);
+    const dot = el.querySelector(".dot");
+    dot.classList.remove("beat");
+    void dot.offsetWidth; // animasiyanı yenidən başlat
+    dot.classList.add("beat");
   }
 }
 
@@ -147,6 +173,7 @@ function cardSkeleton(m) {
     </div>
     <div class="mc-body">
       <div class="mc-top"><span class="mc-label"></span><span class="mc-pct num"></span></div>
+      <p class="instant sm" hidden><span class="dot"></span><span class="i-cap">Anlıq</span><span class="i-label"></span><span class="i-pct num"></span></p>
       <div class="mc-bars">${bars}</div>
       <div class="mc-va" hidden></div>
     </div>
@@ -211,6 +238,9 @@ function updateCard(card, m) {
     label.className = "mc-label";
     setText(pctEl, pct(r.top_prob));
   }
+
+  const inst = m.enabled && r && r.status !== "no_face" ? m.instant : null;
+  renderInstant(card.querySelector(".instant"), inst, state.last && state.last.frames);
 
   const probs = r && r.probs ? Object.fromEntries(r.probs.map((p) => [p.key, p.p])) : null;
   EMO_KEYS.forEach((k) => {

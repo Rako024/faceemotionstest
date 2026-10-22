@@ -153,6 +153,13 @@
       const models = MODELS.map((m) => {
         const on = !m.missing && (m.key === primaryKey || (compareMode !== "off" && !!enabled[m.key]));
         const r = phase === "running" && on ? modelResult(m, noface) : null;
+        let instant = null;
+        if (r && r.status === "no_face") instant = { status: "no_face" };
+        else if (r && r.top) {
+          const top = Math.random() < 0.75 ? r.top : CLASSES[Math.floor(Math.random() * CLASSES.length)];
+          const p = 0.2 + Math.random() * 0.75;
+          instant = { status: p >= BOOT.uncertain_threshold ? "ok" : "uncertain", top, top_label: LABELS[top], top_prob: p };
+        }
         const h = (history[m.key] = history[m.key] || []);
         if (r && phase === "running") h.push(r.status === "ok" ? (BOOT.show_prediction ? r.top : "ok") : r.status);
         if (h.length > 60) h.shift();
@@ -160,7 +167,7 @@
           key: m.key, label: m.label, dataset: m.dataset, family: m.family, has_contempt: m.family !== "fer", has_va: !!m.va,
           installed: !m.missing, loaded: on, loading: false, enabled: on, primary: m.key === primaryKey,
           reason: m.missing ? "quraşdırılmayıb — scripts/download_models.py --extra" : on ? null : "İstifadəçi söndürüb",
-          ms: on ? m.ms * (0.9 + Math.random() * 0.2) : null, result: r, history: on ? h.slice() : [],
+          ms: on ? m.ms * (0.9 + Math.random() * 0.2) : null, result: r, instant, history: on ? h.slice() : [],
         };
       });
       const active = models.filter((m) => m.enabled);
@@ -173,6 +180,7 @@
         next_prompt_s: 372 - frames, prompt_open: !!promptId, preview_enabled: preview,
         face: noface ? { status: "occluded", label: "Üz örtülüb (əl, mikrofon…)", ok: false } : { status: "ok", label: "Üz aşkarlandı", ok: true },
         result: phase === "running" ? primary.result : null,
+        instant: phase === "running" ? primary.instant : null,
         latency_ms: 20 + active.reduce((s, m) => s + (m.ms || 0), 0), cpu: 11 + Math.random() * 4,
         compare_mode: compareMode, primary: primaryKey, models, test: phase === "running" ? testState() : null,
         budget: { limit_ms: compareMode === "auto" ? 333.3 : null, used_ms: active.reduce((s, m) => s + (m.ms || 0), 0), interval_ms: 667 },

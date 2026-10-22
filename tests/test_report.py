@@ -209,6 +209,9 @@ def multi_logs(tmp_path):
 
 
 def test_primary_model_drives_headline(multi_logs, cfg):
+    from dataclasses import replace
+
+    cfg = replace(cfg, model=replace(cfg.model, name="enet_b0_8_best_afew"))  # sintetik logların əsas modeli
     df = load_logs(find_logs(multi_logs))
     data = compute(df, cfg)
     assert data["primary"] == "enet_b0_8_best_afew"

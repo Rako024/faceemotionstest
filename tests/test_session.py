@@ -90,6 +90,11 @@ def test_state_shows_smoothed_result(make_session):
     assert len(st["result"]["probs"]) == 8
     assert st["face"]["ok"] is True
     assert st["latency_ms"] > 0
+    # Anlıq: son kadrın öz nəticəsi (ortalamasız), həm əsas model, həm model kartı üçün
+    assert st["instant"]["status"] == "ok" and st["instant"]["top"] == "Happiness"
+    assert st["instant"]["top_label"] == "Xoşbəxtlik" and 0 < st["instant"]["top_prob"] <= 1
+    primary = next(m for m in st["models"] if m["primary"])
+    assert primary["instant"]["top"] == "Happiness"
 
 
 def test_stop_closes_camera_and_keeps_csv(make_session, tmp_config):
@@ -153,6 +158,7 @@ def test_blind_mode_hides_prediction(make_session, make_config, tmp_path):
     assert wait_for(lambda: (s.state()["result"] or {}).get("status") == "ok", timeout=8)
     result = s.state()["result"]
     assert "top" not in result and "probs" not in result
+    assert "top" not in s.state()["instant"], "kor rejimdə anlıq nəticə də gizlidir"
     s.stop()
     assert any(r["top_emotion"] == "Happiness" for r in rows(cfg))  # CSV yenə tam yazılır
 

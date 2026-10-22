@@ -50,7 +50,7 @@ class ModelRunner:
 @dataclass(frozen=True)
 class ModelOutcome:
     key: str
-    prediction: EmotionPrediction | None  # tək kadrın nəticəsi — UI-da göstərilmir
+    prediction: EmotionPrediction | None  # tək kadrın nəticəsi — UI-da yalnız “anlıq” kimi; CSV smoothed-dir
     smoothed: SmoothedResult
     model_ms: float | None
     tag: ModelTag
