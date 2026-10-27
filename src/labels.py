@@ -30,6 +30,27 @@ STATUS_LABELS = {
     "warming_up": "Toplanır…",
 }
 
+# Geyim yoxlaması (python -m src.attire): nəticələr və config-dəki cavab adları.
+# Config-ə burada olmayan cavab əlavə olunsa, adın özü göstərilir.
+ATTIRE_LABELS = {
+    "formal": "Rəsmi",
+    "not_formal": "Qeyri-rəsmi",
+    "unknown": "Qiymətləndirilə bilmir",
+    "shirt": "düyməli köynək",
+    "tshirt": "futbolka",
+    "polo": "polo",
+    "knitwear": "sviter / hudi",
+    "other": "digər geyim",
+    "white": "ağ",
+    "light_blue": "açıq mavi",
+    "beige": "bej / krem",
+    "grey": "boz",
+    "dark": "tünd",
+    "pink": "çəhrayı",
+    "patterned": "naxışlı",
+    "bright": "parlaq rəngli",
+}
+
 FACE_REASON_LABELS = {
     "ok": "Üz aşkarlandı",
     "not_found": "Üz tapılmadı",

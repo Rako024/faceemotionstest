@@ -46,6 +46,14 @@ DEFAULT_BENCHMARK_MODELS: tuple[str, ...] = (
 DECLINED = "declined"
 TIMEOUT = "timeout"
 
+# Geyim yoxlamasının sualları və hər birinin mütləq cavabları (attire.prompts)
+ATTIRE_QUESTIONS: dict[str, tuple[str, ...]] = {
+    "garment": (),
+    "color": ("white",),
+    "tie": ("present", "absent"),
+    "jacket": ("present", "absent"),
+}
+
 _OPERATOR_ID_RE = re.compile(r"^[A-Za-z0-9_-]{2,32}$")
 
 
@@ -170,6 +178,50 @@ class BenchmarkConfig:
 
 
 @dataclass
+class AttireLiveConfig:
+    """Paneldə geyim kartı: canlı kameradan bir neçə kadr → səs çoxluğu. Nəticə yalnız ekranda."""
+
+    enabled: bool = False
+    on_start: bool = True  # kamera açılandan sonra bir dəfə avtomatik
+    frames: int = 5
+    interval_s: float = 0.7
+    threads: int = 2  # torch nüvələri — emosiya pipeline-ı CPU-suz qalmasın
+
+
+@dataclass
+class AttireConfig:
+    """Geyim yoxlaması: oflayn (python -m src.attire) və istəyə görə paneldə (live)."""
+
+    model_dir: Path = PROJECT_ROOT / "models" / "attire" / "siglip2-base-patch16-224"
+    # Ölçülər üz qutusuna nisbətəndir (en → üzün eni, hündürlük → üzün hündürlüyü), çənədən aşağı
+    torso_width: float = 3.4
+    torso_height: float = 2.0
+    collar_width: float = 1.6  # rəng ölçülən yaxa-döş zonası
+    collar_top: float = 0.15
+    collar_height: float = 1.0
+    min_visible: float = 0.8  # çənədən aşağı kadra düşən minimum hündürlük
+    min_torso_px: int = 112
+    min_brightness: float = 40.0  # ÜZÜN orta parlaqlığı, 0–255 (qara paltar qaranlıq sayılmasın)
+    min_sharpness: float = 8.0  # üzün Laplas dispersiyası (128 px enə gətirilmiş); 0 → söndür
+    # Zero-shot: sual → cavab → mətn təsvirləri (bax ATTIRE_QUESTIONS). Boşdursa, geyim yoxlaması işləmir.
+    prompts: dict[str, dict[str, list[str]]] = field(default_factory=dict)
+    formal_garments: list[str] = field(default_factory=lambda: ["shirt"])
+    # Qərar: rəsmi = (formal_garments cəmi >= formal_threshold) VƏ YA (pencək >= jacket_threshold);
+    # require_white → üstəlik ağ olmalıdır
+    formal_threshold: float = 0.5
+    jacket_is_formal: bool = True
+    jacket_threshold: float = 0.5
+    jacket_min_layering: float = 0.25  # pencək üçün "iki qat" əlaməti (orta zolaq yanlardan fərqli); 0 → söndür
+    require_white: bool = False
+    white_threshold: float = 0.4  # SigLIP-in "white" cavabının ehtimalı
+    white_min_lightness: float = 60.0  # ağ piksel: L* (0–100) bundan yuxarı…
+    white_max_chroma: float = 20.0  # …və rəng doyğunluğu sqrt(a*² + b*²) bundan aşağı
+    white_min_share: float = 0.15  # yaxa zonasında ağ piksellərin minimum payı
+    color_rule: str = "both"  # both | model | pixels
+    live: AttireLiveConfig = field(default_factory=AttireLiveConfig)
+
+
+@dataclass
 class AppConfig:
     operator_id: str
     model: ModelConfig
@@ -186,6 +238,7 @@ class AppConfig:
     privacy: PrivacyConfig
     report: ReportConfig
     benchmark: BenchmarkConfig
+    attire: AttireConfig = field(default_factory=AttireConfig)
 
 
 def _section(raw: dict[str, Any], key: str) -> dict[str, Any]:
@@ -256,6 +309,11 @@ def parse_config(raw: dict[str, Any], base_dir: Path = PROJECT_ROOT) -> AppConfi
     report.dir = _resolve(report.dir, base_dir)
     report.va_tired_rule = va_rule
     benchmark = _build(BenchmarkConfig, _section(raw, "benchmark"), "benchmark")
+    attire_raw = dict(_section(raw, "attire"))
+    attire_live = _build(AttireLiveConfig, attire_raw.pop("live", None) or {}, "attire.live")
+    attire = _build(AttireConfig, attire_raw, "attire")
+    attire.model_dir = _resolve(attire.model_dir, base_dir)
+    attire.live = attire_live
     mapping = _section(raw, "mapping")
 
     cfg = AppConfig(
@@ -274,6 +332,7 @@ def parse_config(raw: dict[str, Any], base_dir: Path = PROJECT_ROOT) -> AppConfi
         privacy=privacy,
         report=report,
         benchmark=benchmark,
+        attire=attire,
     )
     _validate(cfg)
     return cfg
@@ -368,3 +427,50 @@ def _validate(cfg: AppConfig) -> None:
         raise ConfigError("report.min_group_size >= 1 olmalıdır")
     if cfg.benchmark.frames < 1 or cfg.benchmark.warmup < 0:
         raise ConfigError("benchmark.frames >= 1 və warmup >= 0 olmalıdır")
+
+    a = cfg.attire
+    if min(a.torso_width, a.torso_height, a.collar_width, a.collar_height) <= 0 or a.collar_top < 0:
+        raise ConfigError("attire: kəsik ölçüləri müsbət olmalıdır (collar_top >= 0)")
+    if a.collar_width > a.torso_width or a.collar_top + a.collar_height > a.torso_height:
+        raise ConfigError("attire: yaxa zonası gövdə kəsiyinin içində olmalıdır")
+    if not 0 < a.min_visible <= a.torso_height:
+        raise ConfigError("attire.min_visible (0, torso_height] aralığında olmalıdır")
+    if a.min_torso_px < 32 or not 0 <= a.min_brightness < 255 or a.min_sharpness < 0:
+        raise ConfigError("attire: min_torso_px >= 32, min_brightness [0, 255), min_sharpness >= 0 olmalıdır")
+    if not all(0 < t < 1 for t in (a.formal_threshold, a.jacket_threshold, a.white_threshold)) \
+            or not 0 <= a.white_min_share <= 1:
+        raise ConfigError("attire: formal_/jacket_/white_threshold (0, 1), white_min_share [0, 1] olmalıdır")
+    if not 0 <= a.white_min_lightness <= 100 or a.white_max_chroma <= 0:
+        raise ConfigError("attire: white_min_lightness [0, 100], white_max_chroma > 0 olmalıdır")
+    if not 0 <= a.jacket_min_layering < 1:
+        raise ConfigError("attire.jacket_min_layering [0, 1) aralığında olmalıdır (0 = söndür)")
+    if a.color_rule not in ("both", "model", "pixels"):
+        raise ConfigError("attire.color_rule: both | model | pixels")
+    if a.prompts:
+        _validate_attire_prompts(a)
+    lv = a.live
+    if not (1 <= lv.frames <= 15 and 0.1 <= lv.interval_s <= 5 and 1 <= lv.threads <= 16):
+        raise ConfigError("attire.live: frames 1–15, interval_s 0.1–5, threads 1–16 olmalıdır")
+    if lv.enabled and not a.prompts:
+        raise ConfigError("attire.live.enabled üçün attire.prompts lazımdır")
+
+
+def _validate_attire_prompts(a: AttireConfig) -> None:
+    if set(a.prompts) != set(ATTIRE_QUESTIONS):
+        raise ConfigError(f"attire.prompts yalnız bu sualları saxlamalıdır: {list(ATTIRE_QUESTIONS)}")
+    for question, required in ATTIRE_QUESTIONS.items():
+        answers = a.prompts[question]
+        if not isinstance(answers, dict) or len(answers) < 2:
+            raise ConfigError(f"attire.prompts.{question}: ən azı iki cavab olmalıdır")
+        missing = [r for r in required if r not in answers]
+        if missing:
+            raise ConfigError(f"attire.prompts.{question}: {missing} cavabı mütləqdir")
+        for label, texts in answers.items():
+            if not isinstance(label, str):
+                raise ConfigError(f"attire.prompts.{question}: cavab adı mətn olmalıdır ({label!r}) — "
+                                  "YAML-da yes/no/on/off dırnaqsız yazılsa, true/false olur")
+            if not isinstance(texts, list) or not texts or not all(isinstance(t, str) and t.strip() for t in texts):
+                raise ConfigError(f"attire.prompts.{question}.{label}: boş olmayan mətnlər siyahısı olmalıdır")
+    unknown = [g for g in a.formal_garments if g not in a.prompts["garment"]]
+    if not a.formal_garments or unknown:
+        raise ConfigError(f"attire.formal_garments attire.prompts.garment cavablarından olmalıdır, yanlış: {unknown}")

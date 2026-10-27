@@ -22,6 +22,7 @@ function bindBoot() {
   };
   $$("[data-bind]").forEach((el) => setText(el, values[el.dataset.bind] ?? ""));
   if (!b.prompts_enabled) $$('[data-show="prompts"]').forEach((el) => el.remove());
+  if (!b.attire_enabled) $$('[data-show="attire"]').forEach((el) => el.remove());
   if (!b.research_enabled) {
     $$('[data-show="research"]').forEach((el) => el.remove());
     $("#setup-consent").remove();
@@ -156,6 +157,93 @@ function renderMetrics(st) {
   const next = $("#m-next");
   if (next) setText(next, st.prompt_open ? "İndi" : mmss(st.next_prompt_s));
   setText($("#footer-stats"), `${fmtInt(st.records)} sətir yazıldı · ${st.self_reports} sorğu cavabı`);
+}
+
+/* ---------- geyim kartı ---------- */
+function ago(s) {
+  if (s == null) return "";
+  if (s < 60) return "indicə";
+  const m = Math.round(s / 60);
+  return m < 60 ? `${m} dəq əvvəl` : `${Math.round(m / 60)} saat əvvəl`;
+}
+
+const capitalize = (s) => (s ? s.charAt(0).toLocaleUpperCase("az") + s.slice(1) : "");
+
+function setAttireIcon(kind) {
+  const el = $("#attire-icon");
+  if (el.dataset.kind === kind) return;
+  el.dataset.kind = kind;
+  if (kind === "spin") {
+    el.innerHTML = '<span class="spinner sm"></span>';
+    mountSpinner(el.firstChild);
+  } else {
+    el.innerHTML = kind ? icon(kind) : "";
+  }
+}
+
+function renderAttire(st) {
+  const a = st.attire;
+  if (!a || !$("#attire-card")) return;
+  const busy = a.status === "loading" || a.status === "checking";
+  $("#attire-btn").disabled = busy || !!st.test;
+  $("#attire-meter").hidden = a.status !== "checking";
+  if (a.status === "checking") $("#attire-fill").style.width = `${(a.progress / a.frames) * 100}%`;
+
+  const r = a.result;
+  let text = "Yoxlanmayıb";
+  let cls = "muted";
+  let kind = "";
+  let sub = "Düyməli köynək və ya pencək — rəngi fərq etmir";
+  let meta = "";
+  if (a.status === "loading") {
+    [text, cls, kind, sub] = ["Model yüklənir…", "", "spin", "İlk yoxlamada bir dəfə, ~15–20 saniyə. Emosiya analizi davam edir."];
+  } else if (a.status === "checking") {
+    [text, cls, kind, sub] = [`Yoxlanılır… ${a.progress}/${a.frames}`, "", "spin", "Bir neçə saniyə kameraya baxın"];
+  } else if (a.status === "error") {
+    [text, cls, kind, sub] = ["Yoxlanılmadı", "muted", "alert", a.error || ""];
+  } else if (r) {
+    text = r.label;
+    if (r.result === "formal") {
+      [cls, kind, sub] = ["ok", "check", capitalize(r.basis || r.garment)];
+    } else if (r.result === "not_formal") {
+      [cls, kind, sub] = ["warn", "alert", capitalize(r.reason)];
+    } else {
+      [cls, kind, sub] = ["muted", "face-off", capitalize(r.reason) + (r.hint ? `. ${r.hint}.` : "")];
+    }
+    meta = r.result === "unknown" ? ago(r.age_s) : `Səs: ${r.votes}/${a.frames} kadr · ${ago(r.age_s)}`;
+  }
+  $("#attire-label").className = `ac-label ${cls}`;
+  setAttireIcon(kind);
+  setText($("#attire-text"), text);
+  setText($("#attire-sub"), sub);
+  setText($("#attire-meta"), meta);
+  renderAttireDetails(r && r.result !== "unknown" && r.garments && r.garments.length ? r : null);
+}
+
+/* Bütün göstəricilər: geyim növlərinin ehtimalları (zolaqlar), rəng, pencək, qalstuk */
+function renderAttireDetails(r) {
+  const box = $("#attire-details");
+  box.hidden = !r;
+  if (!r) return;
+  const key = r.garments.map((g) => `${g.key}:${g.p}`).join("|");
+  const bars = $("#attire-garments");
+  if (bars.dataset.key !== key) {
+    bars.dataset.key = key;
+    bars.innerHTML = r.garments
+      .map((g, i) => `<span class="nm${i === 0 ? " top" : ""}">${g.label}</span>` +
+        `<span class="br" style="--c: ${g.formal ? "var(--green)" : "var(--label-3)"}"><i style="width:${pct(g.p, 1)}"></i></span>` +
+        `<span class="vl">${pct(g.p)}</span>`)
+      .join("");
+  }
+  setText($("#attire-color"), r.colors.map((c) => `${c.label} ${pct(c.p)}`).join(" · ") || "—");
+  const flag = (el, on, p, formal) => {
+    setText(el, p == null ? "—" : `${on ? "var" : "yoxdur"} · ${pct(p)}`);
+    el.classList.toggle("on", !!(on && formal));
+  };
+  flag($("#attire-jacket"), r.jacket, r.jacket_p, true);
+  // Qara köynək modelə pencək kimi görünə bilər — iki qat (ortada köynək, yanlarda pencək) görünməyibsə izah et
+  if (r.jacket_rejected) setText($("#attire-jacket"), `yoxdur · model ${pct(r.jacket_p)}, iki qat görünmür`);
+  flag($("#attire-tie"), r.tie, r.tie_p, false);
 }
 
 /* ---------- modellər (sağ sütun) ---------- */
@@ -518,6 +606,7 @@ function render(st) {
   if (st.phase === "running") {
     renderHero(st);
     renderMetrics(st);
+    renderAttire(st);
     renderModelsHead(st);
     renderCards(st);
     renderTimeline(st);
@@ -613,6 +702,12 @@ const actions = {
   },
   async "dismiss-test"() {
     await Api.call("dismiss_test");
+    poll();
+  },
+  async "check-attire"(btn) {
+    btn.disabled = true;
+    const res = await Api.call("check_attire");
+    if (!res || !res.ok) toast((res && res.error) || "Geyim yoxlanılmadı", true);
     poll();
   },
   async compact() {

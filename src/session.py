@@ -53,6 +53,7 @@ class Session:
         tick_interval: float = 0.5,
         camera_factory: Callable[[ConsentToken, CameraInfo | None], FrameSource] | None = None,
         camera_lister: Callable[[], list[CameraInfo]] = list_cameras,
+        attire_factory: Callable[..., Any] | None = None,
     ) -> None:
         self.cfg = cfg
         self.video = video
@@ -93,6 +94,13 @@ class Session:
         # UI callback-ləri (window.py təyin edir)
         self.on_change: Callable[[], None] = lambda: None
         self.on_prompt: Callable[[Prompt | None], None] = lambda p: None
+
+        # Geyim kartı: model ilk yoxlamada yüklənir — torch/transformers ona qədər import olunmur
+        self.attire = None
+        if cfg.attire.live.enabled:
+            from .attire.live import AttireChecker
+
+            self.attire = (attire_factory or AttireChecker)(cfg, self._latest_frame, on_change=lambda: self.on_change())
 
         if self.source_kind == "camera":
             self.refresh_cameras()
@@ -213,6 +221,8 @@ class Session:
             self._ticker_stop.clear()
             self._ticker = threading.Thread(target=self._tick_loop, name="SessionTicker", daemon=True)
             self._ticker.start()
+            if self.attire is not None and self.cfg.attire.live.on_start:
+                self.attire.start()
         except Exception as exc:  # noqa: BLE001 - istifadəçiyə göstərilir
             log.exception("Sessiya başlamadı")
             self._teardown()
@@ -248,6 +258,8 @@ class Session:
 
     def _teardown(self) -> None:
         self._ticker_stop.set()
+        if self.attire is not None:
+            self.attire.cancel()
         if self._test is not None and self.test_active:
             self._test.cancel()  # kamera dayandı — test də bitir
         self._close_dataset()
@@ -293,6 +305,24 @@ class Session:
 
     def _on_result(self, result: FrameResult, cpu: float) -> None:
         self._last_cpu = cpu
+
+    # --- geyim ----------------------------------------------------------------------
+
+    def _latest_frame(self):
+        """Yaddaşdakı son kadrın surəti — emosiya pipeline-ı ilə eyni mənbə, ona toxunmadan."""
+        source = self._source
+        return source.latest() if source is not None and self.phase is Phase.RUNNING else None
+
+    def check_attire(self) -> tuple[bool, str | None]:
+        if self.attire is None:
+            return False, "Geyim yoxlaması söndürülüb (attire.live.enabled)"
+        if self.phase is not Phase.RUNNING:
+            return False, "Kamera açıq deyil"
+        if self.test_active:
+            return False, "Nəzarətli test gedərkən geyim yoxlanılmır"
+        if not self.attire.start():
+            return False, "Yoxlama artıq gedir"
+        return True, None
 
     # --- özünüqiymətləndirmə ------------------------------------------------------
 
@@ -628,6 +658,7 @@ class Session:
             "test": self._test_state() if self.phase is Phase.RUNNING else None,
             "cameras": [{"index": c.index, "name": c.name} for c in self.cameras],
             "camera": {"index": self.camera.index, "name": self.camera.name} if self.camera else None,
+            "attire": self.attire.state() if self.attire is not None else None,
         }
         if self._analyzer is not None:
             used = sum(r.ms_ema or 0.0 for r in self._analyzer.active())

@@ -79,6 +79,7 @@ def test_make_boot(cfg):
     assert boot["prompt_interval_min"] == "10"
     assert boot["prompt_timeout_s"] == "30"
     assert boot["material"] == "mica"
+    assert boot["attire_enabled"] is cfg.attire.live.enabled and boot["attire_frames"] == cfg.attire.live.frames
     json.dumps(boot)  # JSON-a çevrilə bilməlidir
 
 
@@ -99,6 +100,9 @@ class FakeSession:
 
     def state(self):
         return self._st
+
+    def check_attire(self):
+        return (False, "Kamera açıq deyil") if self._st["phase"] != "running" else (True, None)
 
 
 class FakeController:
@@ -146,11 +150,24 @@ def test_bridge_answer_casts_types():
     assert b.answer(4, "bad") is False
 
 
+def test_bridge_check_attire_returns_plain_dict():
+    assert Bridge(FakeController(_state())).check_attire() == {"ok": True, "error": None}
+    res = Bridge(FakeController(_state(phase="stopped", active=False))).check_attire()
+    assert res == {"ok": False, "error": "Kamera açıq deyil"}
+
+
+def test_attire_card_is_on_page_and_in_consent():
+    html = (WEB_DIR / "index.html").read_text(encoding="utf-8")
+    assert 'id="attire-card"' in html and 'data-action="check-attire"' in html
+    consent = html.split('id="consent"')[1].split("</section>")[0]
+    assert "Geyim yoxlaması" in consent and "yalnız ekranda" in consent
+
+
 def test_bridge_exposes_no_private_members():
     public = [n for n in dir(Bridge) if not n.startswith("_")]
     assert set(public) == {
         "state", "preview", "set_preview", "island_state", "accept_consent", "decline", "stop",
         "restart", "close_app", "minimize", "toggle_compact", "focus_main", "prompt_state",
         "answer", "demo_prompt", "set_primary", "set_model_enabled", "set_compare_mode",
-        "start_test", "cancel_test", "dismiss_test", "cameras", "select_camera",
+        "start_test", "cancel_test", "dismiss_test", "cameras", "select_camera", "check_attire",
     }  # fmt: skip

@@ -145,6 +145,33 @@
 .metric.ok { color: var(--green); }
 .metric.warn { color: var(--orange); }
 
+/* geyim kartı */
+.attire-card { padding: 12px 14px; border-radius: var(--r-md); margin-top: 10px; }
+.ac-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ac-title { display: inline-flex; align-items: center; gap: 5px; }
+.ac-title .i { width: 15px; height: 15px; }
+.ac-btn { height: 26px; padding: 0 12px 0 10px; }
+.ac-btn[disabled] { opacity: 0.4; pointer-events: none; }
+.ac-label { display: flex; align-items: center; gap: 7px; font: 600 19px var(--font-display); letter-spacing: -0.02em; margin: 6px 0 2px; }
+.ac-label.ok { color: var(--green); }
+.ac-label.warn { color: var(--orange); }
+.ac-label.muted { color: var(--label-2); }
+.ac-icon { display: inline-flex; }
+.ac-icon .i { width: 20px; height: 20px; }
+.ac-sub { overflow-wrap: anywhere; }
+.ac-meter { width: 100%; margin: 8px 0 2px; }
+.ac-meter i { background: var(--accent); transition: width 0.5s var(--spring); }
+.ac-details { display: grid; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 0.5px solid var(--hairline); }
+.ac-details[hidden] { display: none; }
+.mc-bars.ac-bars { grid-template-columns: 112px 1fr 34px; margin-bottom: 4px; }
+.ac-kv { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
+.ac-kv > span:first-child { color: var(--label-2); }
+.ac-kv > span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.ac-kv .on { color: var(--green); font-weight: 600; }
+.ac-meta { margin-top: 4px; }
+.ac-meta:empty { display: none; }
+body.compact .attire-card { display: none; }
+
 /* önizləmə */
 .chip.toggle { margin-left: auto; gap: 5px; transition: background 0.2s, color 0.2s; }
 .chip.toggle .i { width: 14px; height: 14px; }

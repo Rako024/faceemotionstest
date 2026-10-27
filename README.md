@@ -22,11 +22,12 @@ Kaggle CNN) **eyni kadrda yan-yana** işlədib fərqlərini ölçə bilir.
 9. [CSV formatı](#csv-formatı)
 10. [Hesabat](#hesabat)
 11. [Benchmark](#benchmark)
-12. [Məxfilik](#məxfilik)
-13. [Testlər](#testlər)
-14. [Layihə strukturu](#layihə-strukturu)
-15. [Məhdudiyyətlər](#məhdudiyyətlər)
-16. [Lisenziya qeydi](#qeyd-lisenziya-və-istifadə)
+12. [Geyim yoxlaması](#geyim-yoxlaması)
+13. [Məxfilik](#məxfilik)
+14. [Testlər](#testlər)
+15. [Layihə strukturu](#layihə-strukturu)
+16. [Məhdudiyyətlər](#məhdudiyyətlər)
+17. [Lisenziya qeydi](#qeyd-lisenziya-və-istifadə)
 
 ---
 
@@ -71,6 +72,14 @@ python scripts/download_models.py --extra
 | DeepFace | ONNX birbaşa endirilir (`models/deepface_emotion.onnx`, 6 MB) |
 | ViT (Hugging Face) | Yoxlanılmış commit-dən yüklənir, ONNX-ə çevrilir və torch ilə nəticələr müqayisə olunur (`models/vit_fer2013.onnx`, 343 MB) |
 | Kaggle CNN | Kaggle giriş tələb edir. `face_model.h5` faylını [buradan](https://www.kaggle.com/datasets/abhisheksingh016/machine-model-for-emotion-detection) özünüz endirib `models/` qovluğuna qoyun, sonra `--extra`-nı yenidən işə salın. TensorFlow-suz çevirici (`scripts/keras_h5_to_onnx.py`) onu ONNX-ə çevirir və Keras ilə nəticələri müqayisə edir. |
+
+**Geyim yoxlaması modeli** — [SigLIP 2 base](https://huggingface.co/google/siglip2-base-patch16-224)
+(Apache-2.0, ~1.5 GB) yoxlanılmış commit-dən `models/attire/` qovluğuna endirilir. Eyni `torch` (CPU) və
+`transformers` lazımdır; GPU lazım deyil. Bax [Geyim yoxlaması](#geyim-yoxlaması).
+
+```bash
+python scripts/download_models.py --attire
+```
 
 ---
 
@@ -127,6 +136,7 @@ FER2013-də yenidən öyrətmək lazımdır.
 | `python -m src.app --image a.jpg b.jpg` | Tək şəkillər üzrə yoxlama (CSV yazılmır) |
 | `python -m src.report` | CSV → HTML hesabat |
 | `python -m src.benchmark --model all --together` | Bütün modellərin sürət/RAM ölçüsü, tək-tək və birlikdə |
+| `python -m src.attire <qovluq>` | Geyim yoxlaması: şəkillərdə düyməli köynək və ya pencək varmı → CSV (etiketli qovluqda dəqiqlik) |
 
 Əlavə arqumentlər:
 
@@ -224,7 +234,7 @@ Arxa planda başqa üz görünsə belə, yalnız **ən böyük üz** götürül�
 | `model.engine` | `onnx` | `onnx` yalnız CPU-dur (kitabxana `CPUExecutionProvider`-ə bağlıdır). GPU üçün `torch` (yalnız EmotiEffLib). |
 | `model.device` | `cpu` | `cuda` yalnız `engine: torch` ilə. CUDA yoxdursa, xəbərdarlıqla CPU-ya keçir. |
 | `model.flip_tta` | `false` | Hər kadr həm də güzgü əksi ilə proqnozlaşdırılır, ehtimallar ortalanır (2× vaxt) |
-| `compare.mode` | `auto` | `off` / `auto` / `on` — bax [Modellər və müqayisə](#modellər-və-müqayisə) |
+| `compare.mode` | `"off"` | `off` / `auto` / `on` — bax [Modellər və müqayisə](#modellər-və-müqayisə). Default yalnız VA işləyir. `off` dırnaqda yazılmalıdır, çünki YAML dırnaqsız `off`-u `false` kimi oxuyur. |
 | `compare.models` | enet_b0, DeepFace, ViT, Kaggle | Müqayisə ediləcək modellər. Quraşdırılmayanlar UI-da səbəbi ilə göstərilir. |
 | `compare.budget_ratio` | `0.5` | `auto` rejimində bütün modellərin cəmi vaxtı analiz intervalının bu payını keçmir |
 | `detector.*` | bax faylda | confidence 0.8, min üz 80 px, yanakı/əyik/örtülmə hədləri |
@@ -500,6 +510,93 @@ yoxlanılır; CUDA yoxdursa, CPU-ya keçilir və CSV-nin `device` sütununda bu 
 
 ---
 
+## Geyim yoxlaması
+
+Kamera kadrlarında operatorun **rəsmi geyimdə** olub-olmadığını yoxlayır. İki yolu var:
+
+- **Paneldə "Geyim" kartı** (`attire.live.enabled`). Kamera açılandan sonra bir dəfə avtomatik, sonra "Yoxla"
+  düyməsi ilə: canlı axından 5 kadr (~0.7 s fasilə) → səs çoxluğu. Emosiya analizi dayanmır — kadrlar
+  yaddaşdakı son kadrın surətidir, öz üz detektoru ilə işlənir. Model ilk yoxlamada yüklənir (~15–20 s);
+  mətn hissəsi sonra yaddaşdan çıxarılır (+~0.7 GB RAM), torch `attire.live.threads` nüvə ilə məhdudlaşdırılır.
+  Nəticə **yalnız ekranda** göstərilir, CSV-yə yazılmır; razılıq ekranında qeyd olunur. Nəzarətli test gedərkən
+  yoxlama başlamır. Gövdə kadra düşmürsə, kart nə etməli olduğunu deyir (kameranı aşağı əyin və s.).
+  Kartda bütün göstəricilər var: nəticə və səbəbi (nəyə görə rəsmi / niyə deyil), hər geyim növünün ehtimalı
+  (zolaqlarla, 5 kadrın ortası), ən ehtimallı 3 rəng, pencək və qalstuk (var/yox + ehtimal), neçə kadrın səs verdiyi.
+- **Oflayn alət** — şəkil qovluğu üzərində dəqiqlik ölçümü (aşağıda).
+
+Hər iki yolda torch/transformers yalnız ilk yoxlamada yüklənir — tətbiqin başlanğıcı dəyişmir.
+
+**"Rəsmi" = düyməli, yaxalıqlı köynək və ya bluzka (rəngi fərq etmir) VƏ YA pencək.** Qalstuk yalnız məlumat
+üçündür. Səliqə (qırışıq və s.) hələ yoxlanılmır.
+
+| Hal | Nəticə |
+|---|---|
+| Düyməli köynək — ağ, boz, mavi, naxışlı; qalstuklu və ya qalstuksuz; bluzka | Rəsmi — "düyməli köynək" |
+| Pencək / blazer (altında nə olursa olsun) | Rəsmi — "pencək" (`attire.jacket_is_formal: false` ilə söndürülür) |
+| Futbolka, sviter, hudi, idman gödəkçəsi | Qeyri-rəsmi — "düyməli köynək və ya pencək görünmür" |
+| Polo | Qeyri-rəsmi (`attire.formal_garments: [shirt, polo]` ilə rəsmi sayılır) |
+| Gövdə kadra düşmür, qaranlıq, bulanıq, üz tapılmır | Qiymətləndirilə bilmir (səbəbi və nə etməli ilə) |
+
+Yalnız ağ köynək tələb olunsa: `attire.require_white: true` — onda rəng aşağıdakı iki siqnalla yoxlanılır.
+
+**Necə işləyir:**
+
+1. **Gövdə kəsiyi.** YuNet üzü tapır, kəsik çənədən aşağı başlayır — üz modelə verilmir. Ölçülər üz qutusuna
+   nisbətəndir (`attire.torso_*`), kameradan məsafə fərqli olsa da eyni hissə tutulur. Keyfiyyət filtri
+   keçməsə, model təxmin etmir. İşıq və kəskinlik **üzdə** ölçülür — qara və ya düz rəngli paltar "qaranlıq"
+   və ya "bulanıq" sayılmır.
+2. **Geyimin növü** — SigLIP 2 zero-shot: kəsik mətn təsvirləri ilə müqayisə olunur (düyməli köynək,
+   futbolka, polo, sviter/hudi, digər). Təsvirlər `config.yaml`-dadır (`attire.prompts`) — kodu dəyişmədən
+   redaktə etmək olar. Pencək (klassik pencək/blazer; hudi və idman gödəkçəsi sayılmır) və qalstuk da eyni yolla.
+   Qərar: köynək ehtimalı ≥ `formal_threshold` **və ya** pencək ehtimalı ≥ `jacket_threshold`.
+   **Pencək üçün "iki qat" da görünməlidir** (`jacket_min_layering`): qara/tünd köynək modelə tünd pencək kimi
+   görünə bilər, ona görə döşün ortası (yaxaların arası — köynək, qalstuk) yanlardan (pencəyin parçası) fərqli
+   rəngdə olmalıdır. Pencəksiz köynəkdə bu əlamət ~0, pencək + köynəkdə 0.5+ olur; kiçik naxışlar ortalanır.
+   Model "pencək" deyib, amma iki qat görünməyəndə kart bunu yazır: "yoxdur · model 72%, iki qat görünmür".
+3. **Rəng** — həmişə göstərilir, amma yalnız `require_white: true` olanda qərara təsir edir. İki müstəqil siqnal:
+   SigLIP-in "ağ" cavabı və yaxa-döş zonasında ağ piksellərin payı (L\*a\*b\*). İsti lampa altında kameranın ağ
+   balansı ağ köynəyi sarımtıl göstərə bilər — ona görə hər iki siqnal CSV-də ayrıca yazılır (`attire.color_rule`).
+
+CPU-da (i5-1135G7) bir şəkil ~0.35–0.5 s; model bir dəfə ~15 s yüklənir.
+
+**Dəqiqliyi ölçmək.** Şəkilləri iki qovluğa yığın (`rəsmi/` və `qeyri-rəsmi/` adları da olar):
+
+```
+geyim_test/
+  resmi/         P01_1.jpg, P01_2.jpg, P02_1.jpg …
+  qeyri-resmi/   P01_3.jpg, P03_1.jpg …
+```
+
+```bash
+python -m src.attire geyim_test/
+```
+
+Terminalda:
+
+- qiymətləndirilə bilən şəkillərin payı və qalanların səbəbi;
+- indiki ayarlarla dəqiqlik, balanslı dəqiqlik, səhv cədvəli;
+- rəsmi şəkillərdə hər siqnalın (düyməli köynək, pencək; `require_white`-də ağ-model, ağ-piksel) keçmə faizi —
+  səhvin hansı siqnaldan gəldiyi;
+- eyni şəkillərdə ən yaxşı ayarlar — hədlər və pencəyin rəsmi sayılıb-sayılmaması (optimistdir — config-ə
+  yazmazdan əvvəl yeni şəkillərdə yoxlayın);
+- **öyrədilmiş təsnifatçı**: SigLIP vektorları üzərində ridge, 5-qatlı çarpaz yoxlama. Zero-shot çatmasa,
+  bankın öz şəkilləri ilə öyrətməyin nə qazandıracağını göstərir. Fayl adında `_`-dan əvvəlki hissə şəxs
+  sayılır — eyni şəxsin şəkilləri ya yalnız öyrətməyə, ya yalnız testə düşür (əks halda dəqiqlik şişir);
+- səhv tanınan fayllar və səbəbi.
+
+Hər şəklin nəticəsi `reports/geyim_<tarix>.csv`-yə yazılır: `file, label, result, reason, basis, torso, garment,
+formal_p, color, white_p, white_share, tie_p, jacket_p, ms`. Etiketsiz qovluqda yalnız nəticələr çıxır.
+
+**Test şəkilləri üçün tövsiyə** (50–100 şəkil kifayətdir): çətin nümunələr vacibdir — `qeyri-resmi/`-yə
+futbolka, polo, sviter, hudi, zip-li idman gödəkçəsi; `resmi/`-yə müxtəlif rəngli və naxışlı düyməli köynəklər
+(qalstuklu və qalstuksuz), açıq və bağlı pencək, bluzka. Gündüz işığında və isti lampa altında. Şəkildəki
+insanların razılığı olmalıdır.
+
+**Məxfilik.** Şəkillər yalnız oxunur; kəsik, şəkil və ya vektor diskə yazılmır — yalnız CSV (nisbi fayl adı,
+nəticə, ballar). Model yükləndikdən sonra şəbəkə bloklanır. Nəticə intizam tədbiri üçün yeganə əsas olmamalıdır.
+
+---
+
 ## Məxfilik
 
 Qaydalar sözlə yox, **kodla** təmin olunur və testlərlə yoxlanılır.
@@ -526,7 +623,7 @@ Windows ayarlarından asılıdır. Proqramın Python prosesi və səhifə heç b
 python -m pytest
 ```
 
-~290 test. Real model çəkiləri olmadan modeldən asılı testlər `skip` olur (məsələn, Kaggle faylı gələnə qədər).
+~360 test. Real model çəkiləri olmadan modeldən asılı testlər `skip` olur (məsələn, Kaggle faylı gələnə qədər).
 
 | Fayl | Nəyi yoxlayır |
 |---|---|
@@ -548,6 +645,7 @@ python -m pytest
 | `test_multimodel.py` | Eyni kadrda bir neçə model, hər model üçün ayrıca CSV sətri, büdcə, işləyərkən model keçidi, sorğuda hər modelin yazılması |
 | `test_report.py` | Confusion matrix, kappa, Wilson, modellərin müqayisəsi və cüt-cüt razılaşma, operator ID-lərinin hesabatda olmaması |
 | `test_benchmark.py` | Uçdan-uca benchmark (tək və birlikdə), GPU/FER keçidləri |
+| `test_attire.py` | Geyim yoxlaması: gövdə kəsiyi üzü daxil etmir, keyfiyyət filtri, ağlıq ölçüsü, qərar qaydası, kalibrləmə, şəxslərə görə çarpaz yoxlama, CLI və CSV, real SigLIP 2, əsas tətbiqin torch/transformers yükləməməsi |
 
 ---
 
@@ -559,7 +657,7 @@ requirements.txt         əsas asılılıqlar (CPU/ONNX)
 requirements-gpu.txt     ixtiyari torch/CUDA
 requirements-convert.txt yalnız bir dəfəlik model çevirməsi üçün (torch CPU, transformers, h5py, keras)
 scripts/
-  download_models.py     endirmə + ViT ixracı + Kaggle çevirməsi (--extra)
+  download_models.py     endirmə + ViT ixracı + Kaggle çevirməsi (--extra) + SigLIP 2 (--attire)
   keras_h5_to_onnx.py    TensorFlow-suz Keras .h5 → ONNX çevirici
 src/
   app.py                 CLI giriş nöqtəsi (python -m src.app)
@@ -582,6 +680,12 @@ src/
   session.py             razılıq/işləmə/dayandırma həyat dövrü
   report.py              HTML hesabat (python -m src.report)
   benchmark.py           benchmark (python -m src.benchmark)
+  attire/                geyim yoxlaması: panel kartı + oflayn alət (python -m src.attire); torch ilk yoxlamada
+    crop.py              gövdə kəsiyi (üzsüz) + keyfiyyət filtri
+    encoder.py           SigLIP 2 zero-shot (torch/transformers yalnız burada)
+    verdict.py           ağlıq ölçüsü + qərar qaydası
+    evaluate.py          qovluq → nəticələr, dəqiqlik, kalibrləmə, çarpaz yoxlama, CSV
+    live.py              paneldəki "Geyim" kartı: canlı kadrlar → səs çoxluğu (fonda)
   ui/                    pywebview pəncərələri, Windows DWM köməkçiləri, web/ (HTML/CSS/JS)
 tests/                   pytest
 ```

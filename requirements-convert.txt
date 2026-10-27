@@ -1,5 +1,6 @@
-# YALNIZ bir dəfəlik model çevirməsi üçün (scripts/download_models.py --extra).
-# Tətbiq özü işləyərkən bunlara ehtiyac yoxdur — bütün modellər ONNX kimi işləyir.
+# YALNIZ bir dəfəlik model çevirməsi üçün (scripts/download_models.py --extra)
+# və oflayn geyim yoxlaması üçün (download_models.py --attire, python -m src.attire).
+# Əsas tətbiq işləyərkən bunlara ehtiyac yoxdur — bütün emosiya modelləri ONNX kimi işləyir.
 #   pip install torch --index-url https://download.pytorch.org/whl/cpu
 #   pip install -r requirements-convert.txt
 torch>=2.2

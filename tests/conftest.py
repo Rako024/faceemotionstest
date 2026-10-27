@@ -24,6 +24,8 @@ def make_config(raw_config):
 
     def _make(**overrides) -> AppConfig:
         raw = copy.deepcopy(raw_config)
+        # Geyim kartı testlərdə söndürülüb — real SigLIP fonda yüklənməsin; lazım olan test özü yandırır
+        raw.setdefault("attire", {}).setdefault("live", {})["enabled"] = False
         for dotted, value in overrides.items():
             node = raw
             *parents, leaf = dotted.split("__")

@@ -24,7 +24,8 @@ compare:
   # off  → yalnız model.name
   # auto → aşağıdakı modellər, cəmi vaxt büdcəyə sığdığı qədər (ağırlar avtomatik söndürülür)
   # on   → aşağıdakı modellərin hamısı, büdcəyə baxmadan
-  mode: auto
+  # "off" dırnaqda olmalıdır — YAML dırnaqsız off-u false kimi oxuyur.
+  mode: "off"
   models:
     - enet_b0_8_best_afew
     - deepface_emotion
@@ -139,3 +140,119 @@ report:
 benchmark:
   frames: 60
   warmup: 5
+
+# Geyim yoxlaması — paneldə "Geyim" kartı (live) və oflayn alət: python -m src.attire <qovluq>
+# "Rəsmi" = düyməli köynək/bluzka (rəngi fərq etmir — boz, mavi, naxışlı da) VƏ YA pencək.
+# Qalstuk yalnız məlumat üçündür. Model: python scripts/download_models.py --attire
+attire:
+  model_dir: models/attire/siglip2-base-patch16-224   # SigLIP 2 base (Apache-2.0)
+  # Gövdə kəsiyi çənədən aşağı başlayır — üz modelə verilmir. Ölçülər üz qutusuna nisbətəndir:
+  # en → üzün eni ilə, hündürlük → üzün hündürlüyü ilə.
+  torso_width: 3.4
+  torso_height: 2.0
+  # Rəngin ölçüldüyü yaxa-döş zonası (pencək və qalstukla belə köynəyin görünən hissəsi)
+  collar_width: 1.6
+  collar_top: 0.15
+  collar_height: 1.0
+  # Keyfiyyət filtri — keçməyən şəkil "qiymətləndirilə bilmir" olur, model təxmin etmir
+  min_visible: 0.8              # çənədən aşağı kadra düşən minimum hündürlük (kamera yalnız başı çəkirsə)
+  min_torso_px: 112             # gövdə kəsiyinin minimum eni, piksel
+  # İşıq və kəskinlik ÜZDƏ ölçülür — qara və ya düz rəngli paltar "qaranlıq"/"bulanıq" sayılmasın
+  min_brightness: 40            # üzün orta parlaqlığı, 0–255
+  min_sharpness: 8              # üzün Laplas dispersiyası (kəskin ~100+, ciddi bulanıq < 8). 0 → söndür
+  # Zero-shot mətn təsvirləri (ingiliscə — model ingiliscə öyrədilib). Sual → cavab → təsvirlər;
+  # bir cavabın təsvirləri ortalanır. Cavab əlavə etmək / silmək olar, amma bunlar mütləqdir:
+  # color.white, tie və jacket-də present/absent. Cavab adlarını dırnaqsız yes/no YAZMAYIN.
+  prompts:
+    garment:
+      shirt:
+        - a photo of a person wearing a buttoned dress shirt with a collar
+        - a photo of a man wearing a collared dress shirt and a necktie
+        - a photo of a person wearing a suit jacket over a collared dress shirt
+        - a photo of a woman wearing a button-up blouse with a collar
+        - a photo of a person wearing a grey button-up shirt with a collar
+        - a photo of a person wearing a striped or checkered button-down shirt
+        - a photo of a person wearing a light blue oxford shirt with buttons
+      tshirt:
+        - a photo of a person wearing a crew neck t-shirt
+        - a photo of a person wearing a v-neck t-shirt
+        - a photo of a person wearing a blazer over a t-shirt
+      polo:
+        - a photo of a person wearing a polo shirt with a short button placket
+      knitwear:
+        - a photo of a person wearing a sweater
+        - a photo of a person wearing a hoodie or a sweatshirt
+        - a photo of a person wearing a turtleneck
+      other:
+        - a photo of a person wearing a sports jacket or a tracksuit
+        - a photo of a person wearing a uniform or a costume
+        - a photo of a person wearing a dress
+    color:
+      white:
+        - a photo of a person wearing a white shirt
+        - a photo of a person wearing a dark suit jacket over a white shirt
+        - a photo of a person wearing a white blouse
+      light_blue:
+        - a photo of a person wearing a light blue shirt
+      beige:
+        - a photo of a person wearing a beige or cream colored shirt
+      grey:
+        - a photo of a person wearing a grey shirt
+      dark:
+        - a photo of a person wearing a black or dark navy shirt
+      pink:
+        - a photo of a person wearing a pink shirt
+      patterned:
+        - a photo of a person wearing a striped or checkered shirt
+      bright:
+        - a photo of a person wearing a brightly colored top
+    tie:
+      present:
+        - a photo of a man wearing a necktie
+        - a photo of a person wearing a tie with a dress shirt
+      absent:
+        - a photo of a person with an open collar and no tie
+        - a photo of a person wearing a top without a necktie
+    # present = klassik pencək / blazer. Hudi, idman gödəkçəsi və s. "absent"-dir — rəsmi pencək deyil.
+    jacket:
+      present:
+        - a photo of a person wearing a suit jacket or a blazer
+        - a photo of a person wearing a tailored blazer with lapels over a shirt
+      absent:
+        - a photo of a person wearing only a shirt without a jacket
+        - a photo of a person wearing a top without a jacket
+        - a photo of a person wearing a hoodie or a zip-up sweatshirt
+        - a photo of a person wearing a casual sports jacket or a windbreaker
+  # "Rəsmi" sayılan geyim növləri (prompts.garment cavabları). Polo da rəsmi sayılsın → [shirt, polo]
+  formal_garments: [shirt]
+  # Qərar: rəsmi = (formal_garments ehtimallarının cəmi >= formal_threshold)
+  #               VƏ YA (jacket_is_formal və pencək ehtimalı >= jacket_threshold)
+  # Hədlər test şəkilləri ilə kalibrlənir — python -m src.attire <qovluq> ən yaxşı dəyərləri göstərir.
+  formal_threshold: 0.5
+  jacket_is_formal: true        # pencək varsa — altında nə olursa olsun — rəsmi
+  jacket_threshold: 0.5
+  # Qara/tünd köynək modelə tünd pencək kimi görünə bilər. Ona görə pencək üçün "iki qat" da görünməlidir:
+  # döşün ortasında (yaxaların arası) köynək, yanlarda pencəyin parçası — ortanın bu payı yanlardan fərqli
+  # rəngdə olmalıdır. Pencəksiz köynəkdə (qara da olsa) ~0, pencək + köynəkdə adətən 0.4+. 0 → söndür.
+  jacket_min_layering: 0.25
+  require_white: false          # true → yalnız AĞ köynək rəsmi sayılır (aşağıdakı rəng ayarları ilə)
+  # Rəng (yalnız require_white: true olanda qərara təsir edir; həmişə məlumat kimi göstərilir).
+  # İki siqnalla yoxlanılır, çünki isti lampa altında ağ köynək sarımtıl görünə bilər:
+  #   model  → SigLIP-in "white" cavabının ehtimalı >= white_threshold
+  #   pixels → yaxa zonasında ağ piksellərin payı >= white_min_share
+  #            (ağ piksel: açıqlıq L* >= white_min_lightness, doyğunluq <= white_max_chroma)
+  # color_rule: both (ikisi də) | model | pixels
+  white_threshold: 0.4
+  white_min_lightness: 60
+  white_max_chroma: 20
+  white_min_share: 0.15
+  color_rule: both
+  # Paneldə "Geyim" kartı: canlı kameradan bir neçə kadr → səs çoxluğu. Emosiya analizi dayanmır.
+  # Nəticə YALNIZ ekranda göstərilir — CSV-yə yazılmır, kadr saxlanmır. Razılıq ekranında qeyd olunur.
+  # Model ilk yoxlamada yüklənir (~15–20 s, +~0.7 GB RAM); torch/transformers lazımdır (requirements-convert.txt).
+  live:
+    enabled: true
+    on_start: true              # kamera açılandan sonra bir dəfə avtomatik; sonra "Yoxla" düyməsi
+    frames: 5                   # bir yoxlamada neçə kadr
+    interval_s: 0.7             # kadrlar arası fasilə
+    threads: 2                  # torch nüvələri — emosiya modeli CPU-suz qalmasın

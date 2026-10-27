@@ -61,6 +61,9 @@
         <div class="row" role="listitem"><span class="tile" style="background:var(--orange)" data-icon="hand"></span>
           <div class="text"><p class="headline">Nəzarət sizdədir</p>
           <p class="footnote">“Dayandır” ilə istənilən an kamera bağlanır. Ekranın yuxarısındakı yaşıl indikator kameranın açıq olduğunu göstərir.</p></div></div>
+        <div class="row" role="listitem" data-show="attire"><span class="tile" style="background:var(--purple)" data-icon="shirt"></span>
+          <div class="text"><p class="headline">Geyim yoxlaması</p>
+          <p class="footnote">Başlanğıcda və “Yoxla” düyməsi ilə: düyməli köynək və ya pencək olub-olmadığı. Nəticə yalnız ekranda görünür, yazılmır. Şəkil saxlanmır.</p></div></div>
         <div class="row" role="listitem" data-show="prompts"><span class="tile" style="background:var(--teal)" data-icon="bubble"></span>
           <div class="text"><p class="headline">Qısa sorğu</p>
           <p class="footnote">Hər <span data-bind="interval"></span> dəqiqədən bir əhvalınızı soruşacağıq. Cavab ixtiyaridir, pəncərə <span data-bind="timeout"></span> saniyədə özü bağlanır.</p></div></div>
@@ -151,6 +154,25 @@
             <div class="glass metric-card"><span class="m-icon" data-icon="bolt"></span><p class="caption">Gecikmə (cəmi)</p><p class="metric num" id="m-latency">—</p></div>
             <div class="glass metric-card"><span class="m-icon" data-icon="cpu"></span><p class="caption">CPU</p><p class="metric num" id="m-cpu">—</p></div>
             <div class="glass metric-card" id="m-next-card"><span class="m-icon" data-icon="clock"></span><p class="caption">Növbəti sorğu</p><p class="metric num" id="m-next">—</p></div>
+          </div>
+
+          <div class="glass attire-card" id="attire-card" data-show="attire" aria-live="polite">
+            <div class="ac-head">
+              <p class="caption ac-title"><span data-icon="shirt"></span>Geyim</p>
+              <button class="btn-chip ac-btn" data-action="check-attire" id="attire-btn"
+                title="Düyməli köynək və ya pencək yoxlanılır — nəticə yalnız ekranda"><span data-icon="refresh"></span><span>Yoxla</span></button>
+            </div>
+            <p class="ac-label muted" id="attire-label"><span class="ac-icon" id="attire-icon"></span><span id="attire-text">Yoxlanmayıb</span></p>
+            <p class="footnote ac-sub" id="attire-sub">Düyməli köynək və ya pencək — rəngi fərq etmir</p>
+            <div class="meter ac-meter" id="attire-meter" hidden><i id="attire-fill"></i></div>
+            <div class="ac-details" id="attire-details" hidden>
+              <p class="caption">Geyim növü</p>
+              <div class="mc-bars ac-bars" id="attire-garments"></div>
+              <div class="ac-kv"><span>Rəng</span><span id="attire-color">—</span></div>
+              <div class="ac-kv"><span>Pencək</span><span id="attire-jacket">—</span></div>
+              <div class="ac-kv"><span>Qalstuk</span><span id="attire-tie">—</span></div>
+            </div>
+            <p class="caption ac-meta num" id="attire-meta"></p>
           </div>
           <p class="caption footer-stats num" id="footer-stats">&nbsp;</p>
         </div>

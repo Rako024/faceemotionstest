@@ -110,6 +110,11 @@ class Bridge:
     def dismiss_test(self) -> bool:
         return self._c.session.dismiss_test()
 
+    # --- geyim ------------------------------------------------------------------
+    def check_attire(self) -> dict[str, Any]:
+        ok, error = self._c.session.check_attire()
+        return {"ok": ok, "error": error}
+
     # --- özünüqiymətləndirmə ----------------------------------------------------
     def prompt_state(self) -> dict[str, Any] | None:
         return self._c.session.prompt_state()

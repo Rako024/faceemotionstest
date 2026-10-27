@@ -1,5 +1,6 @@
 /* YALNIZ brauzerdə dizayn önizləməsi üçün saxta API. Python bu faylı səhifəyə daxil etmir.
-   URL parametrləri: ?phase=running|consent|stopped|finished|error  &blind=1  &mtl=1  &noface=1  &uncertain=1 */
+   URL parametrləri: ?phase=running|consent|stopped|finished|error  &blind=1  &mtl=1  &noface=1  &uncertain=1
+                     &attire=formal|not|unknown|error|off */
 "use strict";
 
 (() => {
@@ -35,6 +36,8 @@
       ],
       decline_label: "Cavab vermək istəmirəm",
       initial_phase: q.get("phase") || "consent",
+      attire_enabled: q.get("attire") !== "off",
+      attire_frames: 5,
       uncertain_threshold: 0.3,
       research_enabled: q.get("research") !== "0",
       test_expressions: 7,
@@ -137,7 +140,47 @@
     return { ...common, phase: "rest", seconds_left: TD.rest - (w - TD.hold), phase_seconds: TD.rest };
   }
 
+  // Geyim: yükləmə (yalnız ilk dəfə) → 5 kadr → nəticə
+  const ATTIRE_KIND = q.get("attire") || "formal";
+  const G = (shirt, polo, tshirt, knit, other) => [
+    { key: "shirt", label: "düyməli köynək", p: shirt, formal: true }, { key: "polo", label: "polo", p: polo, formal: false },
+    { key: "tshirt", label: "futbolka", p: tshirt, formal: false }, { key: "knitwear", label: "sviter / hudi", p: knit, formal: false },
+    { key: "other", label: "digər geyim", p: other, formal: false },
+  ].sort((a, b) => b.p - a.p);
+  const ATTIRE_RESULTS = {
+    formal: { result: "formal", label: "Rəsmi", reason: "", basis: "düyməli köynək + pencək", hint: null, garment: "düyməli köynək", color: "boz",
+      garments: G(0.82, 0.07, 0.05, 0.04, 0.02), colors: [{ label: "boz", p: 0.48 }, { label: "naxışlı", p: 0.21 }, { label: "ağ", p: 0.12 }],
+      tie: false, tie_p: 0.18, jacket: true, jacket_p: 0.81 },
+    not: { result: "not_formal", label: "Qeyri-rəsmi", reason: "düyməli köynək və ya pencək görünmür — sviter / hudi", basis: "", hint: null,
+      garment: "sviter / hudi", color: "boz", garments: G(0.06, 0.04, 0.12, 0.71, 0.07),
+      colors: [{ label: "boz", p: 0.55 }, { label: "açıq mavi", p: 0.2 }, { label: "tünd", p: 0.1 }], tie: false, tie_p: 0.09, jacket: false, jacket_p: 0.14 },
+    unknown: { result: "unknown", label: "Qiymətləndirilə bilmir", reason: "gövdə kadra kifayət qədər düşmür", basis: "",
+      hint: "Kameranı bir az aşağı əyin və ya bir az geri oturun — yaxa görünməlidir", garment: null, color: null, garments: [], colors: [], tie: false, jacket: false },
+  };
+  let attireStart = window.__BOOT__.initial_phase === "running" ? performance.now() : null;
+  let attireLoaded = false;
+  let attireLast = null;
+  function attireState() {
+    if (!window.__BOOT__.attire_enabled || phase !== "running") return null;
+    const base = { status: "idle", progress: 0, frames: 5, loaded: attireLoaded, error: null, result: attireLast };
+    if (attireStart == null) return base;
+    const t = (performance.now() - attireStart) / 1000;
+    const loadS = attireLoaded ? 0 : 3;
+    if (t < loadS) return { ...base, status: "loading" };
+    const k = Math.floor((t - loadS) / 0.7) + 1;
+    if (k <= 5) return { ...base, status: "checking", progress: k };
+    attireLoaded = true;
+    if (ATTIRE_KIND === "error") return { ...base, loaded: false, status: "error", error: "SigLIP 2 modeli tapılmadı — scripts/download_models.py --attire" };
+    const r = ATTIRE_RESULTS[ATTIRE_KIND] || ATTIRE_RESULTS.formal;
+    attireLast = { ...r, votes: r.result === "unknown" ? 0 : 4, age_s: Math.round(t - loadS - 3.5), formal_p: 0.9, white_p: 0.7 };
+    return { ...base, status: "done", loaded: true, result: attireLast };
+  }
+
   window.MockApi = {
+    check_attire() {
+      attireStart = performance.now();
+      return Promise.resolve({ ok: true, error: null });
+    },
     start_test(tester, save) {
       if (!/^[A-Za-z0-9_-]{2,32}$/.test(tester || "") || !/\d/.test(tester)) {
         return Promise.resolve({ ok: false, error: "Tester ID anonim olmalıdır: 2–32 simvol, ən azı bir rəqəm (məs. T-01)" });
@@ -184,7 +227,7 @@
         latency_ms: 20 + active.reduce((s, m) => s + (m.ms || 0), 0), cpu: 11 + Math.random() * 4,
         compare_mode: compareMode, primary: primaryKey, models, test: phase === "running" ? testState() : null,
         budget: { limit_ms: compareMode === "auto" ? 333.3 : null, used_ms: active.reduce((s, m) => s + (m.ms || 0), 0), interval_ms: 667 },
-        cameras: CAMS, camera: CAMS[camIndex] || null,
+        cameras: CAMS, camera: CAMS[camIndex] || null, attire: attireState(),
         agreement: BOOT.show_prediction && active.length > 1 ? { agree: best ? tops.filter((x) => x === best).length : 0, total: active.length, top: best || null, top_label: best ? LABELS[best] : null } : null,
       });
     },
@@ -204,7 +247,11 @@
       if (q.get("camfail") === "1") return Promise.resolve({ ok: false, error: `Kamera açılmadı: ${CAMS[i].name} — başqa proqram istifadə edə bilər` });
       return new Promise((r) => setTimeout(() => { camIndex = i; r({ ok: true, error: null }); }, phase === "running" ? 900 : 0));
     },
-    accept_consent() { phase = "loading"; setTimeout(() => (phase = "running"), 1400); return Promise.resolve(true); },
+    accept_consent() {
+      phase = "loading";
+      setTimeout(() => { phase = "running"; attireStart = performance.now(); }, 1400);
+      return Promise.resolve(true);
+    },
     decline() { phase = "stopped"; return Promise.resolve(true); },
     stop() { phase = "stopped"; return Promise.resolve(true); },
     restart() { phase = "consent"; frames = 0; return Promise.resolve(true); },

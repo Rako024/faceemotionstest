@@ -83,6 +83,8 @@ def make_boot(cfg: AppConfig, session: Session, material: str) -> dict:
         "initial_phase": "consent",
         "uncertain_threshold": cfg.smoothing.uncertain_threshold,
         "research_enabled": cfg.research.save_test_frames,
+        "attire_enabled": cfg.attire.live.enabled,
+        "attire_frames": cfg.attire.live.frames,
         "test_expressions": len(cfg.test.expressions),
         "test_rounds": cfg.test.rounds,
         "test_minutes": max(1, round((cfg.test.intro_seconds + len(cfg.test.expressions) * cfg.test.rounds

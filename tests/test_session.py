@@ -206,3 +206,71 @@ def test_shutdown_removes_guards(make_session):
     guards = s._guards
     s.shutdown()
     assert not guards.disk.active and not guards.network.active
+
+
+# --- geyim kartı ---------------------------------------------------------------------
+
+
+@pytest.fixture
+def attire_cfg(make_config, tmp_path):
+    def _cfg(**kw):
+        base = dict(logging__dir=str(tmp_path / "logs"), compare__mode="off", attire__live__enabled=True,
+                    attire__live__frames=2, attire__live__interval_s=0.1)
+        return make_config(**{**base, **kw})
+
+    return _cfg
+
+
+def attire_factory(loads):
+    """Real YuNet + saxta enkoder: model yüklənməsi sayılır, torch lazım deyil."""
+    from src.attire.encoder import Models, ZeroShot
+    from src.attire.live import AttireChecker
+    from src.detector import FaceDetector
+
+    from .test_attire import FakeImageEncoder
+
+    def load(cfg):
+        loads.append(cfg)
+        enc = FakeImageEncoder()
+        return Models(FaceDetector(cfg.detector), enc, ZeroShot(enc, cfg.attire.prompts))
+
+    return lambda cfg, frame, on_change: AttireChecker(cfg, frame, on_change=on_change, loader=load)
+
+
+def test_attire_check_on_start_alongside_emotion(make_session, attire_cfg):
+    loads = []
+    s = make_session(attire_cfg(), attire_factory=attire_factory(loads))
+    assert s.state()["attire"]["status"] == "idle" and loads == []  # razılığa qədər heç nə
+    s.accept_consent()
+    assert wait_for(lambda: (s.state()["attire"] or {}).get("status") == "done", timeout=15)
+    st = s.state()
+    assert st["attire"]["result"]["result"] in ("formal", "not_formal", "unknown")
+    assert len(loads) == 1
+    # Emosiya analizi dayanmayıb
+    assert wait_for(lambda: (s.state()["result"] or {}).get("status") == "ok", timeout=8)
+
+
+def test_check_attire_needs_running_camera_and_runs_once(make_session, attire_cfg):
+    s = make_session(attire_cfg(attire__live__on_start=False), attire_factory=attire_factory([]))
+    assert s.check_attire() == (False, "Kamera açıq deyil")
+    s.accept_consent()
+    assert wait_for(lambda: s.phase is Phase.RUNNING)
+    assert s.state()["attire"]["status"] == "idle"  # on_start söndürülüb
+    assert s.check_attire() == (True, None)
+    assert s.check_attire() == (False, "Yoxlama artıq gedir")
+    assert wait_for(lambda: s.state()["attire"]["status"] == "done", timeout=15)
+
+
+def test_stop_cancels_attire_check(make_session, attire_cfg):
+    s = make_session(attire_cfg(attire__live__frames=10, attire__live__interval_s=1.0), attire_factory=attire_factory([]))
+    s.accept_consent()
+    assert wait_for(lambda: s.state()["attire"]["status"] == "checking", timeout=15)
+    s.stop()
+    s.attire.join(5)
+    assert not s.attire.busy and s.attire.verdict is None
+
+
+def test_attire_card_off_by_config(make_session):
+    s = make_session()
+    assert s.attire is None and s.state()["attire"] is None
+    assert s.check_attire()[0] is False
